@@ -1,0 +1,47 @@
+name: boa_terra_app
+description: "App oficial da igreja – Cadastro de membros, líderes e igrejas"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_time_picker_spinner: ^2.0.0
+
+  # Firebase
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
+
+  # Utilitários
+  image_picker: ^1.1.0
+  path_provider: ^2.1.2
+  permission_handler: ^11.3.1
+  url_launcher: ^6.2.5
+  google_fonts: ^6.2.0
+
+  # Ícones iOS
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
