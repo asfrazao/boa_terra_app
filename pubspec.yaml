@@ -9,23 +9,30 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  intl: ^0.18.1
 
-  flutter_time_picker_spinner: ^2.0.0
-
-  # Firebase
+  # Firebase (core + auth + firestore) – compatíveis entre si
   firebase_core: ^3.0.0
   firebase_auth: ^5.0.0
   cloud_firestore: ^5.0.0
 
-  # Utilitários
+  # Firebase (armazenamento – se usar no futuro)
+  firebase_storage: ^12.4.8
+
+  # Gerenciamento de estado
+  provider: ^6.1.1
+
+  # Widgets e UI
+  flutter_time_picker_spinner: ^2.0.0
+  flutter_cupertino_datetime_picker: ^3.0.0
+  google_fonts: ^6.2.0
+  cupertino_icons: ^1.0.8
+
+  # Recursos do dispositivo
   image_picker: ^1.1.0
   path_provider: ^2.1.2
   permission_handler: ^11.3.1
   url_launcher: ^6.2.5
-  google_fonts: ^6.2.0
-
-  # Ícones iOS
-  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -45,3 +52,4 @@ flutter:
         - asset: assets/fonts/Poppins-Regular.ttf
         - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
+

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'cadastro_igreja.dart';
+import 'cadastro_igreja_screen.dart';
+import 'cadastro_membro_screen.dart';// agora apontando para a nova tela
+
 
 class RegisterTypeScreen extends StatefulWidget {
   const RegisterTypeScreen({super.key});
@@ -74,6 +76,14 @@ class _RegisterTypeScreenState extends State<RegisterTypeScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const CadastroIgrejaScreen(),
+                      ),
+                    );
+                  }
+                  else if (tipoSelecionado == 'Membro') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CadastroMembroScreen(),
                       ),
                     );
                   }
