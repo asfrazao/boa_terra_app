@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'cadastro_membro_screen.dart';
 import 'welcome_screen.dart';
 
 class DashboardMembroScreen extends StatefulWidget {
@@ -23,12 +24,23 @@ class DashboardMembroScreen extends StatefulWidget {
 class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
   int recadosNaoLidos = 0;
   int eventosNaoLidos = 0;
+  Map<String, dynamic>? dadosUsuario;
 
   @override
   void initState() {
     super.initState();
+    _carregarDadosUsuario();
     _contarRecadosNaoLidos();
     _contarEventosNaoLidos();
+  }
+
+  Future<void> _carregarDadosUsuario() async {
+    final doc = await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).get();
+    if (doc.exists) {
+      setState(() {
+        dadosUsuario = doc.data();
+      });
+    }
   }
 
   Future<void> _contarRecadosNaoLidos() async {
@@ -100,6 +112,42 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
     );
   }
 
+  void _confirmarExclusao() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Excluir Cadastro'),
+        content: const Text(
+            'Seu cadastro será excluído da igreja. Você não terá mais acesso aos eventos, recados e pedidos de oração. Deseja continuar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).delete();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ Cadastro excluído com sucesso.')),
+                );
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                      (route) => false,
+                );
+              }
+            },
+            icon: const Icon(Icons.delete),
+            label: const Text('Sim, Excluir'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmarSaida() {
     showDialog(
       context: context,
@@ -108,7 +156,7 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
         content: const Text('Deseja realmente sair do BOA TERRA?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context), // Fecha o modal
+            onPressed: () => Navigator.pop(context),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -146,9 +194,12 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
             Text(widget.igrejaNome, style: const TextStyle(fontSize: 16, color: Colors.grey)),
             const SizedBox(height: 24),
             _buildBotaoDash('Cultos', Icons.access_time, () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => CultosScreen(igrejaId: widget.igrejaId),
-              ));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CultosScreen(igrejaId: widget.igrejaId),
+                ),
+              );
             }),
             _buildBotaoDash('Recados do Pastor', Icons.announcement, () {
               Navigator.push(context, MaterialPageRoute(
@@ -166,6 +217,38 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
               ));
             }, badge: eventosNaoLidos),
             const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit),
+                  label: const Text("Editar Cadastro"),
+                  onPressed: dadosUsuario == null
+                      ? null
+                      : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CadastroMembroScreen(
+                          dadosPreenchidos: dadosUsuario!,
+                          userId: widget.userId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete),
+                  label: const Text("Excluir Cadastro"),
+                  onPressed: _confirmarExclusao,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Center(
               child: ElevatedButton.icon(
                 onPressed: _confirmarSaida,
@@ -176,7 +259,7 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
                   foregroundColor: Colors.red,
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -184,17 +267,45 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
   }
 }
 
-// Telas temporárias — substitua quando criar as versões completas
 class CultosScreen extends StatelessWidget {
   final String igrejaId;
   const CultosScreen({super.key, required this.igrejaId});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text("Cultos")), body: const Center(child: Text("Cultos em breve")));
+    return Scaffold(
+      appBar: AppBar(title: const Text("Cultos")),
+      body: FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance.collection('igrejas').doc(igrejaId).get(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData || !snapshot.data!.exists) return const Center(child: Text("Dados não encontrados."));
+
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final horarios = data['horariosCulto'] as Map<String, dynamic>?;
+
+          if (horarios == null || horarios.isEmpty) return const Center(child: Text("Nenhum culto cadastrado."));
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: horarios.entries.map((e) {
+              final dia = e.key;
+              final horariosDoDia = List<String>.from(e.value ?? []);
+              return Card(
+                child: ListTile(
+                  title: Text(dia),
+                  subtitle: Text(horariosDoDia.join(", ")),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
   }
 }
 
+// Telas de exemplo — substitua pelas reais
 class RecadosScreen extends StatelessWidget {
   final String userId;
   const RecadosScreen({super.key, required this.userId});

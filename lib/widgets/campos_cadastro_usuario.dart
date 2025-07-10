@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'campo_senha.dart';
 
-class CamposCadastroUsuario extends StatefulWidget {
+class CamposCadastroUsuario extends StatelessWidget {
   final TextEditingController nomeController;
   final TextEditingController sobrenomeController;
   final TextEditingController rgController;
   final TextEditingController emailController;
   final TextEditingController senhaController;
   final TextEditingController repetirSenhaController;
+
   final String? batismo;
-  final Function(String?) onBatismoSelecionado;
+  final Function(String?)? onBatismoSelecionado;
+
+  final bool exibirBatismo;
   final VoidCallback? onSalvar;
 
   const CamposCadastroUsuario({
@@ -19,84 +23,78 @@ class CamposCadastroUsuario extends StatefulWidget {
     required this.emailController,
     required this.senhaController,
     required this.repetirSenhaController,
-    required this.batismo,
-    required this.onBatismoSelecionado,
-    required this.onSalvar,
+    this.batismo,
+    this.onBatismoSelecionado,
+    this.exibirBatismo = true,
+    this.onSalvar,
   });
 
-  @override
-  State<CamposCadastroUsuario> createState() => _CamposCadastroUsuarioState();
-}
-
-class _CamposCadastroUsuarioState extends State<CamposCadastroUsuario> {
-  bool _senhaVisivel = false;
-  bool _repetirSenhaVisivel = false;
+  void _validarSobrenome(BuildContext context) {
+    final sobrenome = sobrenomeController.text.trim();
+    if (sobrenome.split(' ').length > 1) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Atenção"),
+          content: const Text("Use apenas o último sobrenome (sem espaços)."),
+          actions: [
+            TextButton(
+              child: const Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+      sobrenomeController.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TextField(
-          controller: widget.nomeController,
+        TextFormField(
+          controller: nomeController,
           decoration: const InputDecoration(labelText: "Primeiro Nome"),
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: widget.sobrenomeController,
-          decoration: const InputDecoration(labelText: "Último Sobrenome"),
+        TextFormField(
+          controller: sobrenomeController,
+          decoration: const InputDecoration(labelText: "Último Nome"),
+          onChanged: (_) => _validarSobrenome(context),
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: widget.rgController,
+        TextFormField(
+          controller: rgController,
           decoration: const InputDecoration(labelText: "RG"),
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: widget.emailController,
-          decoration: const InputDecoration(labelText: "Email"),
+        TextFormField(
+          controller: emailController,
           keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: "Email"),
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          value: widget.batismo,
-          decoration: const InputDecoration(labelText: "Batizado?"),
-          items: const [
-            DropdownMenuItem(value: "Sim", child: Text("Sim")),
-            DropdownMenuItem(value: "Não", child: Text("Não")),
-          ],
-          onChanged: widget.onBatismoSelecionado,
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: widget.senhaController,
-          obscureText: !_senhaVisivel,
-          decoration: InputDecoration(
-            labelText: "Senha",
-            suffixIcon: IconButton(
-              icon: Icon(_senhaVisivel ? Icons.visibility_off : Icons.visibility),
-              onPressed: () {
-                setState(() => _senhaVisivel = !_senhaVisivel);
-              },
-            ),
+
+        if (exibirBatismo)
+          DropdownButtonFormField<String>(
+            value: batismo,
+            decoration: const InputDecoration(labelText: "Batizado?"),
+            items: const [
+              DropdownMenuItem(value: "Sim", child: Text("Sim")),
+              DropdownMenuItem(value: "Não", child: Text("Não")),
+            ],
+            onChanged: onBatismoSelecionado,
           ),
-        ),
+
         const SizedBox(height: 12),
-        TextField(
-          controller: widget.repetirSenhaController,
-          obscureText: !_repetirSenhaVisivel,
-          decoration: InputDecoration(
-            labelText: "Repetir Senha",
-            suffixIcon: IconButton(
-              icon: Icon(_repetirSenhaVisivel ? Icons.visibility_off : Icons.visibility),
-              onPressed: () {
-                setState(() => _repetirSenhaVisivel = !_repetirSenhaVisivel);
-              },
-            ),
-          ),
+        CampoSenha(
+          senhaController: senhaController,
+          repetirSenhaController: repetirSenhaController,
         ),
         const SizedBox(height: 24),
         ElevatedButton.icon(
-          onPressed: widget.onSalvar,
+          onPressed: onSalvar,
           icon: const Icon(Icons.save),
           label: const Text("Salvar"),
         ),

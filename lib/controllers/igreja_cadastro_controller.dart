@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/igreja_model.dart';
 import '../services/igreja_service.dart';
 import '../utils/validador_chave.dart';
-import '../utils/validador_convite.dart'; // NOVO
+import '../utils/validador_convite.dart';
+import '../utils/compartilhador_convite.dart';
 
 class IgrejaCadastroController extends ChangeNotifier {
   final formKey = GlobalKey<FormState>();
@@ -22,7 +25,7 @@ class IgrejaCadastroController extends ChangeNotifier {
   String? estadoSelecionado;
   String? logoBase64;
   bool acessoValidado = false;
-  String conviteGerado = ''; // NOVO
+  String conviteGerado = '';
 
   final Map<String, List<TimeOfDay>> horariosCulto = {};
   final Map<String, bool> diasSelecionados = {};
@@ -41,14 +44,14 @@ class IgrejaCadastroController extends ChangeNotifier {
     }
   }
 
-  /// Valida a chave digitada e busca igrejas vinculadas
-  /// Retorna true se a chave for válida, false caso contrário
+  /// Valida a chave localmente e carrega igrejas relacionadas
   Future<bool> validarChave() async {
     final chave = chaveController.text.trim().toUpperCase();
 
     if (!ValidadorChaveLocal.validar(chave)) {
       acessoValidado = false;
       igrejasEncontradas.clear();
+      conviteGerado = '';
       notifyListeners();
       return false;
     }
@@ -56,16 +59,20 @@ class IgrejaCadastroController extends ChangeNotifier {
     igrejasEncontradas = await _service.buscarPorChave(chave);
     acessoValidado = true;
 
-    // Gera o convite automaticamente
-    conviteGerado = ValidadorConvite.gerarConvite('IGREJA'); // CORRETO temporariamente
-
+    conviteGerado = ValidadorConvite.gerarConviteTemporario();
 
     notifyListeners();
     return true;
   }
 
-  void preencherCampos(IgrejaModel igreja) {
+  /// Preenche os campos para edição de igreja diretamente
+  void preencherCamposSeEditar(IgrejaModel? igreja) {
+    if (igreja == null) return;
+
     igrejaSelecionada = igreja;
+    acessoValidado = true;
+
+    chaveController.text = igreja.chave;
     denominacaoController.text = igreja.denominacao;
     adminController.text = igreja.adminSetor ?? '';
     estadoSelecionado = igreja.estado;
@@ -78,7 +85,7 @@ class IgrejaCadastroController extends ChangeNotifier {
     coPastorController.text = igreja.coPastor ?? '';
     coPastorSobrenomeController.text = igreja.coPastorSobrenome ?? '';
     logoBase64 = igreja.logoBase64;
-    conviteGerado = igreja.convite ?? ''; // NOVO
+    conviteGerado = igreja.convite ?? '';
 
     for (var dia in diasSelecionados.keys) {
       diasSelecionados[dia] = false;
@@ -100,6 +107,12 @@ class IgrejaCadastroController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Preenche os campos a partir da igreja selecionada (em modo padrão)
+  void preencherCampos(IgrejaModel igreja) {
+    preencherCamposSeEditar(igreja);
+  }
+
+  /// Persiste a igreja nova ou atualiza a existente
   Future<void> salvarCadastro() async {
     if (chaveController.text.trim().isEmpty) return;
 
@@ -132,15 +145,90 @@ class IgrejaCadastroController extends ChangeNotifier {
       diasCultos: cultos,
       logoBase64: logoBase64 ?? '',
       dataCadastro: DateTime.now(),
-      convite: conviteGerado, // NOVO
+      convite: conviteGerado,
     );
 
-    await _service.salvarOuAtualizar(nova);
-    await validarChave(); // recarrega lista após salvar
+    final idSalvo = await _service.salvarOuAtualizar(nova);
+
+    await FirebaseFirestore.instance.collection('igrejas').doc(idSalvo).update({
+      'convite': conviteGerado,
+    });
+
+    final snapshotAtualizado = await FirebaseFirestore.instance
+        .collection('igrejas')
+        .doc(idSalvo)
+        .get();
+
+    final dataAtualizada = snapshotAtualizado.data();
+    conviteGerado = dataAtualizada?['convite'] ?? conviteGerado;
+
+    await validarChave();
+
+    igrejaSelecionada = igrejasEncontradas.firstWhere(
+          (i) => i.id == idSalvo,
+      orElse: () => igrejaSelecionada!,
+    );
+
+    notifyListeners();
   }
 
-  Future<void> excluirIgreja(String id) async {
-    await _service.excluir(id);
-    await validarChave(); // recarrega após exclusão
+  Future<void> compartilharConvite() async {
+    if (conviteGerado.isEmpty) return;
+
+    await CompartilhadorConvite.compartilharConvite(
+      convite: conviteGerado,
+      nomeIgreja: denominacaoController.text.trim(),
+    );
   }
+
+  Future<void> excluirIgreja(String convite) async {
+    if (convite.isEmpty) return;
+
+    // Mostra um loading
+    showDialog(
+      context: formKey.currentContext!,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Exclui todos os usuários com o mesmo convite
+      final snapUsuarios = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .where('convite', isEqualTo: convite)
+          .get();
+
+      for (final doc in snapUsuarios.docs) {
+        await doc.reference.delete();
+      }
+
+      // Exclui todas as igrejas com o mesmo convite
+      final snapIgrejas = await FirebaseFirestore.instance
+          .collection('igrejas')
+          .where('convite', isEqualTo: convite)
+          .get();
+
+      for (final doc in snapIgrejas.docs) {
+        await doc.reference.delete();
+      }
+
+      // Revalida a chave para atualizar a lista
+      await validarChave();
+
+      if (formKey.currentContext!.mounted) {
+        Navigator.pop(formKey.currentContext!); // fecha o loading
+        ScaffoldMessenger.of(formKey.currentContext!).showSnackBar(
+          const SnackBar(content: Text('✅ Igreja e usuários excluídos com sucesso.')),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(formKey.currentContext!); // fecha o loading
+      if (formKey.currentContext!.mounted) {
+        ScaffoldMessenger.of(formKey.currentContext!).showSnackBar(
+          SnackBar(content: Text('❌ Erro ao excluir: $e')),
+        );
+      }
+    }
+  }
+
 }

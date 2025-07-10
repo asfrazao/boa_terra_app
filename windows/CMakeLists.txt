@@ -1,5 +1,12 @@
 # Project-level configuration.
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10)
+
+# Suprime o warning LNK4099 no modo Debug
+if (MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_options("/wd4099")
+  add_link_options("/ignore:4099")
+endif()
+
 project(boa_terra_app LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change

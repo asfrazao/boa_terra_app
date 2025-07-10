@@ -1,11 +1,11 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dashboard_membro_screen.dart';
-import 'dashboard_obreiro_screen.dart';
-import 'dashboard_pastor_screen.dart';
+
 import 'register_type_screen.dart';
 import 'solicitar_chave_screen.dart';
+import '../controllers/login_controller.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -20,6 +20,33 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   final TextEditingController senhaController = TextEditingController();
   bool carregando = false;
   bool _senhaVisivel = false;
+
+  String? logoBase64;
+
+  @override
+  void initState() {
+    super.initState();
+    carregarLogoPadrao();
+  }
+
+  Future<void> carregarLogoPadrao() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('igrejas')
+        .where('padrao', isEqualTo: true)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final data = snapshot.docs.first.data();
+      final base64 = data['logo_base64']; //
+      if (base64 != null && base64.toString().isNotEmpty) {
+        setState(() {
+          logoBase64 = base64;
+        });
+      }
+    }
+  }
+
 
   void realizarLogin() async {
     final nome = primeiroNomeController.text.trim().toLowerCase();
@@ -38,77 +65,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     setState(() => carregando = true);
 
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('usuarios')
-          .where('nome_lower', isEqualTo: nome)
-          .where('sobrenome_lower', isEqualTo: sobrenome)
-          .get();
+    final controller = LoginController();
+    final telaDestino = await controller.realizarLogin(
+      nome: nome,
+      sobrenome: sobrenome,
+      senha: senha,
+      onError: _mostrarErro,
+    );
 
-      if (snapshot.docs.isEmpty) {
-        _mostrarErro("Nome ou senha inválidos.");
-        setState(() => carregando = false);
-        return;
-      }
-
-      final userDoc = snapshot.docs.first;
-      final dados = userDoc.data();
-      final userId = userDoc.id;
-
-      if (dados['senha'] != senha) {
-        _mostrarErro("Nome ou senha inválidos.");
-        setState(() => carregando = false);
-        return;
-      }
-
-      final tipo = dados['tipo'];
-      final nomeIgreja = dados['nome_igreja'] ?? 'Igreja não definida';
-      final igrejaId = dados['igrejaId'] ?? '';
-
-      Widget telaDestino;
-      if (tipo == 'membro') {
-        telaDestino = DashboardMembroScreen(
-          nome: dados['nome'],
-          igrejaNome: nomeIgreja,
-          igrejaId: igrejaId,
-          userId: userId,
-        );
-      } else if (tipo == 'obreiro') {
-        telaDestino = DashboardObreiroScreen(
-          nome: dados['nome'],
-          igrejaNome: nomeIgreja,
-        );
-      } else if (tipo == 'pastor') {
-        telaDestino = DashboardPastorScreen(
-          nome: dados['nome'],
-          igrejaNome: nomeIgreja,
-        );
-      } else {
-        _mostrarErro("Tipo de acesso inválido.");
-        setState(() => carregando = false);
-        return;
-      }
-
-      if (!mounted) return;
+    if (telaDestino != null && mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => telaDestino),
       );
-    } catch (e) {
-      _mostrarErro("Erro ao validar login: $e");
     }
 
     setState(() => carregando = false);
   }
 
   void _mostrarErro(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final logoWidget = logoBase64 != null
+        ? CircleAvatar(
+      radius: 60,
+      backgroundImage: MemoryImage(base64Decode(logoBase64!)),
+    )
+        : Image.asset('assets/images/logoBoaTerra.png', height: 120);
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -116,7 +103,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.asset('assets/images/logoIADB.jpeg', height: 120),
+              logoWidget,
               const SizedBox(height: 24),
               const Text(
                 'Bem-vindo ao BOA TERRA APP!',

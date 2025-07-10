@@ -17,14 +17,19 @@ class IgrejaService {
   Future<String> salvarOuAtualizar(IgrejaModel igreja) async {
     final data = igreja.toMap();
 
-    if (igreja.id != null && igreja.id!.isNotEmpty) {
-      await _collection.doc(igreja.id).update(data);
-      return igreja.id!;
-    } else {
-      final docRef = await _collection.add(data);
-      return docRef.id;
+    try {
+      if (igreja.id != null && igreja.id!.isNotEmpty) {
+        await _collection.doc(igreja.id).update(data);
+        return igreja.id!;
+      } else {
+        final docRef = await _collection.add(data);
+        return docRef.id;
+      }
+    } catch (e) {
+      throw Exception('Erro ao salvar ou atualizar igreja: $e');
     }
   }
+
 
   Future<void> excluir(String id) async {
     await _collection.doc(id).delete();

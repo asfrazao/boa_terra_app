@@ -1,183 +1,101 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'welcome_screen.dart';
-import '../widgets/imagem_selfie_widget.dart';
-import 'cadastro_usuario_dados_screen.dart';
+import 'package:provider/provider.dart';
+import '../controllers/igreja_cadastro_controller.dart';
 
-class CadastroObreiroScreen extends StatefulWidget {
-  const CadastroObreiroScreen({super.key});
-
-  @override
-  State<CadastroObreiroScreen> createState() => _CadastroObreiroScreenState();
-}
-
-class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
-  final TextEditingController chaveController = TextEditingController();
-  final List<String> chavesValidas = [
-    'BOATERRA2025X',
-    'BOATERRAADM01',
-    'BOATERRA1A2B3C'
-  ];
-
-  bool chaveValidada = false;
-  String? chaveAtual;
-  String? igrejaSelecionada;
-  List<Map<String, dynamic>> igrejas = [];
-
-  Future<void> validarChave() async {
-    final chave = chaveController.text.trim().toUpperCase();
-    if (!chavesValidas.contains(chave)) {
-      setState(() {
-        chaveValidada = false;
-        igrejas = [];
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Chave inválida')),
-      );
-      return;
-    }
-
-    final snapshot = await FirebaseFirestore.instance
-        .collection('igrejas')
-        .where('chave', isEqualTo: chave)
-        .get();
-
-    final lista = snapshot.docs.map((doc) {
-      final data = doc.data();
-      return {
-        'id': doc.id,
-        'nome': data['denominacao'] ?? 'Sem nome',
-        'admin_setor': data['admin_setor'] ?? '',
-      };
-    }).toList();
-
-    setState(() {
-      chaveValidada = true;
-      chaveAtual = chave;
-      igrejas = lista;
-    });
-  }
-
-  void avancarParaFoto() {
-    if (igrejaSelecionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ Selecione a igreja')),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (_) => ImagemSelfieWidget(
-        onImagemSelecionada: (base64) {
-          Navigator.pop(context);
-          final igreja = igrejas.firstWhere((i) => i['id'] == igrejaSelecionada);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => CadastroUsuarioDadosScreen(
-                tipo: 'obreiro',
-                idIgreja: igrejaSelecionada!,
-                nomeIgreja: igreja['nome'] as String,
-                imagemBase64: base64,
-              ),
-            ),
-          );
-        },
-        onCancelar: () {
-          Navigator.pop(context);
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                (route) => false,
-          );
-        },
-      ),
-    );
-  }
+class CadastroIgrejaScreen extends StatelessWidget {
+  const CadastroIgrejaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cadastro de Obreiro'),
-        backgroundColor: Colors.deepPurple.shade100,
-        foregroundColor: Colors.black,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              'Bem-vindo ao cadastro de obreiros!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+    return ChangeNotifierProvider(
+      create: (_) => IgrejaCadastroController(),
+      child: Consumer<IgrejaCadastroController>(
+        builder: (context, controller, _) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Cadastro de Igreja'),
+              backgroundColor: Colors.deepPurple.shade100,
+              foregroundColor: Colors.black,
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'BOA TERRA',
-              style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.deepPurple),
-            ),
-            const SizedBox(height: 30),
-            if (!chaveValidada) ...[
-              const Text('Podemos iniciar seu cadastro?'),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: chaveController,
-                decoration: const InputDecoration(
-                  labelText: 'Informe a Chave da Igreja ou Convite',
-                  border: OutlineInputBorder(),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: controller.formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: controller.chaveController,
+                      decoration: const InputDecoration(
+                        labelText: 'Chave de Acesso',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: controller.acessoValidado ? null : controller.validarChave,
+                      child: const Text('Validar Chave'),
+                    ),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: controller.pastorSobrenomeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Sobrenome do Pastor',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: controller.coPastorController,
+                      decoration: const InputDecoration(
+                        labelText: 'Co-Pastor (opcional)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: controller.coPastorSobrenomeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Sobrenome Co-Pastor (opcional)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // ✅ Campo de convite (somente leitura)
+                    TextFormField(
+                      readOnly: true,
+                      enabled: false,
+                      initialValue: controller.conviteGerado,
+                      decoration: const InputDecoration(
+                        labelText: 'Convite Gerado',
+                        labelStyle: TextStyle(color: Colors.deepPurple),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Dias e Horários dos Cultos:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+
+                    // (Você pode adicionar aqui os checkboxes e time spinners para os cultos)
+
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: controller.salvarCadastro,
+                        child: const Text('Salvar Cadastro'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: validarChave,
-                icon: const Icon(Icons.vpn_key),
-                label: const Text('Validar Chave ou Convite'),
-              ),
-            ],
-            if (chaveValidada && igrejas.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              const Text('Selecione a igreja em que você é obreiro:'),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                value: igrejaSelecionada,
-                items: igrejas.map<DropdownMenuItem<String>>((igreja) {
-                  final nome = igreja['nome'] as String;
-                  final setor = igreja['admin_setor'] as String;
-                  final textoExibido = setor.isNotEmpty ? '$nome | $setor' : nome;
-                  return DropdownMenuItem<String>(
-                    value: igreja['id'] as String,
-                    child: Text(textoExibido),
-                  );
-                }).toList(),
-                onChanged: (valor) => setState(() => igrejaSelecionada = valor),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: avancarParaFoto,
-                child: const Text('Avançar'),
-              ),
-            ],
-            const Spacer(),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                      (route) => false,
-                );
-              },
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Voltar'),
-            )
-          ],
-        ),
+            ),
+          );
+        },
       ),
     );
   }

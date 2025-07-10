@@ -3,18 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'welcome_screen.dart';
-
 import '../controllers/igreja_cadastro_controller.dart';
-import '../widgets/igreja_dropdown_list.dart';
+import '../widgets/igreja_list_admin.dart';
 import '../widgets/dias_horario_selector.dart';
+import '../models/igreja_model.dart';
 
 class CadastroIgrejaScreen extends StatelessWidget {
-  const CadastroIgrejaScreen({super.key});
+  final IgrejaModel? igrejaEditavel;
+
+  const CadastroIgrejaScreen({super.key, this.igrejaEditavel});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => IgrejaCadastroController(),
+      create: (_) => IgrejaCadastroController()..preencherCamposSeEditar(igrejaEditavel),
       child: const _CadastroIgrejaView(),
     );
   }
@@ -39,11 +41,11 @@ class _CadastroIgrejaView extends StatelessWidget {
                 labelText: 'Chave de Acesso',
                 border: OutlineInputBorder(),
               ),
-              enabled: !controller.acessoValidado,
+              enabled: !controller.acessoValidado || controller.igrejaSelecionada == null,
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: controller.acessoValidado
+              onPressed: controller.acessoValidado || controller.igrejaSelecionada != null
                   ? null
                   : () async {
                 final ok = await controller.validarChave();
@@ -57,18 +59,20 @@ class _CadastroIgrejaView extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            if (controller.acessoValidado)
+            if (controller.acessoValidado || controller.igrejaSelecionada != null)
               Expanded(
                 child: SingleChildScrollView(
                   child: Form(
                     key: controller.formKey,
                     child: Column(
                       children: [
-                        IgrejaDropdownList(
-                          igrejas: controller.igrejasEncontradas,
-                          onEditar: controller.preencherCampos,
-                          onExcluir: controller.excluirIgreja,
-                        ),
+                        if (controller.igrejaSelecionada == null)
+                          IgrejaListAdmin(
+                            igrejas: controller.igrejasEncontradas,
+                            onEditar: controller.preencherCampos,
+                            onExcluir: controller.excluirIgreja,
+                          ),
+
                         _buildInput(controller.denominacaoController, 'Denominação'),
                         _buildInput(controller.adminController, 'Admin/Setor (opcional)', obrigatorio: false),
 
@@ -97,15 +101,31 @@ class _CadastroIgrejaView extends StatelessWidget {
                         _buildInput(controller.coPastorSobrenomeController, 'Sobrenome Co-Pastor (opcional)', obrigatorio: false),
 
                         const SizedBox(height: 16),
-                        // CAMPO DE CONVITE GERADO
+
                         TextFormField(
                           readOnly: true,
-                          controller: TextEditingController(text: controller.conviteGerado),
+                          enabled: false,
+                          controller: TextEditingController.fromValue(
+                            TextEditingValue(text: controller.conviteGerado),
+                          ),
                           decoration: const InputDecoration(
                             labelText: 'Convite Gerado',
+                            filled: true,
+                            fillColor: Color(0xFFF5F5F5),
                             border: OutlineInputBorder(),
                           ),
                         ),
+
+                        const SizedBox(height: 8),
+
+                        if (controller.igrejaSelecionada != null)
+                          ElevatedButton.icon(
+                            onPressed: controller.conviteGerado.isEmpty
+                                ? null
+                                : () => controller.compartilharConvite(),
+                            icon: const Icon(Icons.share),
+                            label: const Text('Compartilhar Convite'),
+                          ),
 
                         const SizedBox(height: 20),
                         const Text('Dias e Horários dos Cultos:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -155,6 +175,7 @@ class _CadastroIgrejaView extends StatelessWidget {
                           icon: const Icon(Icons.image),
                           label: const Text('Selecionar Logo da Igreja'),
                         ),
+
                         const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () async {
@@ -166,12 +187,13 @@ class _CadastroIgrejaView extends StatelessWidget {
                                   const SnackBar(content: Text('✅ Cadastro salvo com sucesso!')),
                                 );
 
-                                Future.delayed(const Duration(milliseconds: 500), () {
+                                await Future.delayed(const Duration(milliseconds: 500));
+                                if (context.mounted) {
                                   Navigator.of(context).pushAndRemoveUntil(
                                     MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                                         (route) => false,
                                   );
-                                });
+                                }
                               }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -179,7 +201,9 @@ class _CadastroIgrejaView extends StatelessWidget {
                               );
                             }
                           },
-                          child: const Text('Salvar Cadastro'),
+                          child: Text(controller.igrejaSelecionada != null
+                              ? 'Salvar Alterações'
+                              : 'Salvar Cadastro'),
                         ),
                       ],
                     ),

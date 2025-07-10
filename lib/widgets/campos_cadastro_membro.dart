@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'campo_senha.dart';
 
 class CamposCadastroMembro extends StatelessWidget {
   final TextEditingController nomeController;
@@ -7,9 +8,16 @@ class CamposCadastroMembro extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController senhaController;
   final TextEditingController repetirSenhaController;
-  final String? batismo; // 'Sim' ou 'Não'
-  final void Function(String? value) onBatismoSelecionado;
-  final VoidCallback onSalvar;
+
+  final String? batismo;
+  final Function(String?) onBatismoSelecionado;
+
+  final String? grupoSelecionado;
+  final List<String> funcoesSelecionadas;
+  final void Function(String) onGrupoSelecionado;
+  final void Function(String, bool) onFuncoesSelecionadas;
+
+  final VoidCallback? onSalvar;
 
   const CamposCadastroMembro({
     super.key,
@@ -21,99 +29,107 @@ class CamposCadastroMembro extends StatelessWidget {
     required this.repetirSenhaController,
     required this.batismo,
     required this.onBatismoSelecionado,
-    required this.onSalvar,
+    required this.grupoSelecionado,
+    required this.funcoesSelecionadas,
+    required this.onGrupoSelecionado,
+    required this.onFuncoesSelecionadas,
+    this.onSalvar,
   });
 
   @override
   Widget build(BuildContext context) {
-    final _formKey = GlobalKey<FormState>();
+    final Map<String, List<String>> funcoesPorGrupo = {
+      'Grupo das irmãs': ['Lider', 'Regência', 'Consagração', 'Louvor', 'Nenhum'],
+      'Grupo dos jovens': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
+      'Grupo dos adolescentes': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
+      'Grupo das crianças': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
+    };
 
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          _buildCampo(nomeController, "Primeiro Nome"),
-          _buildCampo(sobrenomeController, "Último Nome"),
-          _buildCampo(rgController, "RG"),
-          _buildCampo(emailController, "E-mail", tipo: TextInputType.emailAddress, validador: _validarEmail),
-          const SizedBox(height: 16),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text("Já é Batizado(a)?", style: TextStyle(fontSize: 16)),
-          ),
-          Row(
+    return Column(
+      children: [
+        TextFormField(
+          controller: nomeController,
+          decoration: const InputDecoration(labelText: "Primeiro Nome"),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: sobrenomeController,
+          decoration: const InputDecoration(labelText: "Último Nome"),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: rgController,
+          decoration: const InputDecoration(labelText: "RG"),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: "Email"),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: batismo,
+          decoration: const InputDecoration(labelText: "Batizado?"),
+          items: const [
+            DropdownMenuItem(value: "Sim", child: Text("Sim")),
+            DropdownMenuItem(value: "Não", child: Text("Não")),
+          ],
+          onChanged: onBatismoSelecionado,
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: grupoSelecionado,
+          decoration: const InputDecoration(
+              labelText: "A qual grupo o irmão(ã) pertence?"),
+          items: const [
+            DropdownMenuItem(
+                value: 'Grupo das irmãs', child: Text('Grupo das irmãs')),
+            DropdownMenuItem(
+                value: 'Grupo dos jovens', child: Text('Grupo dos jovens')),
+            DropdownMenuItem(
+                value: 'Grupo dos adolescentes',
+                child: Text('Grupo dos adolescentes')),
+            DropdownMenuItem(
+                value: 'Grupo das crianças',
+                child: Text('Grupo das crianças')),
+            DropdownMenuItem(value: 'Nenhum', child: Text('Nenhum')),
+          ],
+          onChanged: (grupo) {
+            if (grupo != null) onGrupoSelecionado(grupo);
+          },
+        ),
+        const SizedBox(height: 12),
+        if (grupoSelecionado != null && grupoSelecionado != 'Nenhum')
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Radio<String>(
-                value: 'Sim',
-                groupValue: batismo,
-                onChanged: onBatismoSelecionado,
-              ),
-              const Text("Sim"),
-              Radio<String>(
-                value: 'Não',
-                groupValue: batismo,
-                onChanged: onBatismoSelecionado,
-              ),
-              const Text("Não"),
+              const Divider(),
+              const Text('Funções no grupo:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              ...funcoesPorGrupo[grupoSelecionado]!.map((funcao) {
+                return CheckboxListTile(
+                  title: Text(funcao),
+                  value: funcoesSelecionadas.contains(funcao),
+                  onChanged: (checked) {
+                    onFuncoesSelecionadas(funcao, checked ?? false);
+                  },
+                );
+              }).toList(),
             ],
           ),
-          if (batismo == null)
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Campo obrigatório", style: TextStyle(color: Colors.red)),
-            ),
-          const SizedBox(height: 16),
-          _buildCampo(senhaController, "Senha (mín. 6 dígitos)", obscure: true),
-          _buildCampo(repetirSenhaController, "Repetir Senha", obscure: true, validador: (value) {
-            if (value != senhaController.text) return 'As senhas não coincidem';
-            return null;
-          }),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate() && batismo != null) {
-                onSalvar();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('⚠️ Preencha todos os campos obrigatórios')),
-                );
-              }
-            },
-            child: const Text("Finalizar Cadastro"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCampo(TextEditingController controller, String label,
-      {bool obscure = false, TextInputType tipo = TextInputType.text, String? Function(String?)? validador}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscure,
-        keyboardType: tipo,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
+        const SizedBox(height: 12),
+        CampoSenha(
+          senhaController: senhaController,
+          repetirSenhaController: repetirSenhaController,
         ),
-        validator: validador ?? (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Campo obrigatório';
-          }
-          if (label.contains("Senha") && value.length < 6) {
-            return 'Senha deve ter ao menos 6 dígitos';
-          }
-          return null;
-        },
-      ),
+        const SizedBox(height: 24),
+        ElevatedButton.icon(
+          onPressed: onSalvar,
+          icon: const Icon(Icons.save),
+          label: const Text("Salvar Cadastro"),
+        ),
+      ],
     );
-  }
-
-  String? _validarEmail(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Campo obrigatório';
-    final emailValido = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,4}$');
-    return emailValido.hasMatch(value) ? null : 'E-mail inválido';
   }
 }

@@ -1,3 +1,4 @@
+import 'package:boa_terra_app/screens/cadastro_pastor_screen.dart';
 import 'package:flutter/material.dart';
 import 'cadastro_igreja_screen.dart';
 import 'cadastro_membro_screen.dart';// agora apontando para a nova tela
@@ -84,6 +85,14 @@ class _RegisterTypeScreenState extends State<RegisterTypeScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const CadastroMembroScreen(),
+                      ),
+                    );
+                  }
+                  else if (tipoSelecionado == 'Pastor') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CadastroPastorScreen(),
                       ),
                     );
                   }
