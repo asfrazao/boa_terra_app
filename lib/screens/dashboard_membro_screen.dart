@@ -194,6 +194,7 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text(widget.igrejaNome, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+
               const SizedBox(height: 24),
               _buildBotaoDash('Cultos', Icons.access_time, () {
                 Navigator.push(
@@ -218,6 +219,7 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
                   builder: (_) => EventosScreen(userId: widget.userId),
                 ));
               }, badge: eventosNaoLidos),
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

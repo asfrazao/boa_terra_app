@@ -1,3 +1,4 @@
+import 'package:boa_terra_app/screens/cadastro_obreiro_screen.dart';
 import 'package:boa_terra_app/screens/cadastro_pastor_screen.dart';
 import 'package:flutter/material.dart';
 import 'cadastro_igreja_screen.dart';
@@ -93,6 +94,14 @@ class _RegisterTypeScreenState extends State<RegisterTypeScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const CadastroPastorScreen(),
+                      ),
+                    );
+                  }
+                  else if (tipoSelecionado == 'Obreiro') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CadastroObreiroScreen(),
                       ),
                     );
                   }

@@ -161,4 +161,102 @@ class CadastroUsuarioService {
       return null;
     }
   }
+
+  /// Método genérico para qualquer perfil (obreiro, pastor, etc.)
+  static Future<void> salvarObreiroDados({
+    required String userId,
+    required Map<String, dynamic> dados,
+  }) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(userId)
+          .set(dados, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Erro ao salvar dados do usuário: $e');
+      rethrow;
+    }
+  }
+
+  static Future<bool> salvarCadastroObreiro({
+    required BuildContext context,
+    String? userId,
+    required String tipo,
+    required String convite,
+    required String idIgreja,
+    required String nomeIgreja,
+    required String adminSetor,
+    required String imagemBase64,
+    required String nome,
+    required String sobrenome,
+    required String rg,
+    required String email,
+    required String senha,
+    required String repetirSenha,
+    required String? cargo,
+  }) async {
+    if (senha.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ A senha é obrigatória')),
+      );
+      return false;
+    }
+
+    if (senha != repetirSenha) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ As senhas não coincidem')),
+      );
+      return false;
+    }
+
+    if (cargo == null || cargo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ Selecione o cargo na igreja')),
+      );
+      return false;
+    }
+
+    final dados = <String, dynamic>{
+      'tipo': tipo,
+      'convite': convite,
+      'igrejaId': idIgreja,
+      'igrejaNome': nomeIgreja,
+      'setorAdmin': adminSetor,
+      'imagem': imagemBase64,
+      'nome': nome,
+      'sobrenome': sobrenome,
+      'nome_lower': nome.toLowerCase(),
+      'sobrenome_lower': sobrenome.toLowerCase(),
+      'rg': rg,
+      'email': email,
+      'cargo': cargo,
+      'senha': senha,
+      'dataCadastro': FieldValue.serverTimestamp(),
+      'dataAtualizacao': FieldValue.serverTimestamp(),
+    };
+
+    try {
+      if (userId != null) {
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(userId)
+            .update(dados);
+      } else {
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .add(dados);
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint("Erro ao salvar obreiro: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao salvar cadastro: $e")),
+      );
+      return false;
+    }
+  }
+
+
+
 }

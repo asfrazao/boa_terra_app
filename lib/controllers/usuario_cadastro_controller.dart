@@ -1,43 +1,59 @@
-// lib/controllers/usuario_cadastro_controller.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../helpers/compact_image_helper.dart';
+import '../utils/compact_image_helper.dart';
 import '../utils/validador_convite.dart';
 
 abstract class UsuarioCadastroController extends ChangeNotifier {
-  // Variáveis comuns
+  /// 🔑 Código do convite dividido
   final parte1 = TextEditingController();
   final parte2 = TextEditingController();
-  final nomeController = TextEditingController();
-  final sobrenomeController = TextEditingController();
-  final rgController = TextEditingController();
-  final emailController = TextEditingController();
-  final senhaController = TextEditingController();
-  final repetirSenhaController = TextEditingController();
 
-  final foco1 = FocusNode();
-  final foco2 = FocusNode();
-
+  /// 🔧 Estado de navegação
+  int etapaAtual = 0;
   bool salvando = false;
   bool carregandoImagem = false;
 
+  /// 📸 Imagem capturada (base64)
   String? imagemBase64;
+
+  /// 🎫 Dados de convite e igreja
   String? conviteAtual;
   String? igrejaSelecionada;
   List<Map<String, dynamic>> igrejas = [];
 
-  int etapaAtual = 0;
+  /// ⚠️ Controladores legados (mover para controllers filhos no futuro)
+  /// Ainda presentes para compatibilidade com Membro/Pastor atuais
+  @Deprecated('Use campos específicos em controllers filhos')
+  final nomeController = TextEditingController();
+
+  @Deprecated('Use campos específicos em controllers filhos')
+  final sobrenomeController = TextEditingController();
+
+  @Deprecated('Use campos específicos em controllers filhos')
+  final rgController = TextEditingController();
+
+  @Deprecated('Use campos específicos em controllers filhos')
+  final emailController = TextEditingController();
+
+  @Deprecated('Use campos específicos em controllers filhos')
+  final senhaController = TextEditingController();
+
+  @Deprecated('Use campos específicos em controllers filhos')
+  final repetirSenhaController = TextEditingController();
+
+  /// 🔎 Foco nos campos de convite
+  final foco1 = FocusNode();
+  final foco2 = FocusNode();
 
   String get conviteFormatado =>
       'BOATERRA-${parte1.text.toUpperCase()}-${parte2.text.toUpperCase()}';
 
-  /// 🧠 Após build
+  /// 🧠 Após o build inicial, foca no campo convite
   void inicializarCampos() {
     WidgetsBinding.instance.addPostFrameCallback((_) => foco1.requestFocus());
   }
 
-  /// 📸 Imagem
+  /// 📸 Tira selfie com compactação
   Future<void> tirarSelfie() async {
     carregandoImagem = true;
     notifyListeners();
@@ -46,6 +62,7 @@ abstract class UsuarioCadastroController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 🖼️ Seleciona foto da galeria
   Future<void> carregarFotoGaleria() async {
     carregandoImagem = true;
     notifyListeners();
@@ -54,7 +71,7 @@ abstract class UsuarioCadastroController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔑 Convite e Igreja
+  /// 🔐 Valida o convite informado e carrega as igrejas compatíveis
   Future<bool> validarConvite(BuildContext context) async {
     final convite = conviteFormatado;
 
@@ -92,6 +109,6 @@ abstract class UsuarioCadastroController extends ChangeNotifier {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  /// 🚨 Método abstrato que será implementado nos filhos
+  /// 🚨 Método abstrato obrigatório para perfis específicos
   Future<void> salvar(BuildContext context);
 }

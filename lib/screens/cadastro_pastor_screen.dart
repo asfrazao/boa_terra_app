@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../controllers/cadastro_pastor_controller.dart';
 import '../services/cadastro_usuario_service.dart';
 import '../utils/validador_convite.dart';
-import '../helpers/compact_image_helper.dart';
+import '../utils/compact_image_helper.dart';
 import '../widgets/campos_cadastro_pastor.dart';
 import 'dashboard_pastor_screen.dart';
 import 'welcome_screen.dart';

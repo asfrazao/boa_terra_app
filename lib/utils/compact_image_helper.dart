@@ -65,4 +65,20 @@ class CompactImageHelper {
       return null;
     }
   }
+  /// Compacta diretamente uma imagem em base64 e retorna a nova base64 comprimida
+  static Future<String?> comprimirImagemBase64(String base64) async {
+    try {
+      final bytes = base64Decode(base64);
+      if (bytes.lengthInBytes <= maxSizeKB * 1024) {
+        return base64;
+      }
+
+      final reduzido = await compute(_reduzirImagem, bytes);
+      return reduzido != null ? base64Encode(reduzido) : null;
+    } catch (e) {
+      debugPrint('Erro ao comprimir imagem base64: $e');
+      return null;
+    }
+  }
+
 }

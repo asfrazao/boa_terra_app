@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../helpers/compact_image_helper.dart';
+import '../utils/compact_image_helper.dart';
 
 class ImagemSelfieWidget extends StatelessWidget {
   final void Function(String base64) onImagemSelecionada;

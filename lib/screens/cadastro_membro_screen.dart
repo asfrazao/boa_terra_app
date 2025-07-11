@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../utils/validador_convite.dart';
 import '../services/cadastro_usuario_service.dart';
-import '../helpers/compact_image_helper.dart';
+import '../utils/compact_image_helper.dart';
 import '../widgets/campo_senha.dart';
 import '../controllers/cadastro_membro_controller.dart';
 import 'dashboard_membro_screen.dart';
@@ -483,6 +483,7 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
         senhaController: controller.senhaController,
         repetirSenhaController: controller.repetirSenhaController,
       ),
+
       const SizedBox(height: 24),
       ElevatedButton.icon(
         onPressed: salvar,
@@ -536,19 +537,28 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
                           color: Colors.deepPurple)),
                   const SizedBox(height: 30),
                   conteudo,
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const WelcomeScreen()),
-                            (route) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Voltar'),
+
+                  const SizedBox(height: 12), // Espaço acima do botão
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 16), // Margem inferior
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                              (route) => false,
+                        );
+                      },
+                      icon: const Icon(Icons.exit_to_app),
+                      label: const Text('Sair'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
                   ),
+
+
                 ],
               ),
             ),

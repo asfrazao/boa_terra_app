@@ -60,8 +60,10 @@ class LoginController {
         );
       } else if (tipo == 'obreiro') {
         return DashboardObreiroScreen(
+          userId: userId,
           nome: dados['nome'],
           igrejaNome: nomeIgreja,
+          igrejaId: igrejaId,
         );
       } else if (tipo == 'pastor') {
         return DashboardPastorScreen(
