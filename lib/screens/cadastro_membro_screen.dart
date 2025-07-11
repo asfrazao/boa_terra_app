@@ -26,6 +26,7 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
   final parte2 = TextEditingController();
   final foco1 = FocusNode();
   final foco2 = FocusNode();
+  final FocusNode _focusRG = FocusNode();
 
   int etapaAtual = 0;
   bool salvando = false;
@@ -48,6 +49,30 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => foco1.requestFocus());
+
+    // Validação do último sobrenome (igual ao pastor)
+    _focusRG.addListener(() {
+      if (_focusRG.hasFocus) {
+        final sobrenome = controller.sobrenomeController.text.trim();
+        if (sobrenome.split(' ').length > 1) {
+          controller.sobrenomeController.clear();
+
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text("Atenção"),
+              content: const Text("Use apenas o último sobrenome."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    });
 
     if (widget.dadosPreenchidos != null) {
       controller.carregarDadosExistentes(widget.dadosPreenchidos!);
@@ -77,6 +102,7 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
       etapaAtual = 3;
     }
   }
+
 
   Future<void> validarConvite() async {
     final convite = conviteFormatado;
@@ -388,8 +414,9 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
           decoration: const InputDecoration(labelText: "Último Nome")),
       const SizedBox(height: 12),
       TextFormField(
-          controller: controller.rgController,
-          decoration: const InputDecoration(labelText: "RG")),
+        controller: controller.rgController,
+        focusNode: _focusRG,
+        decoration: const InputDecoration(labelText: "RG"),),
       const SizedBox(height: 12),
       TextFormField(
           controller: controller.emailController,
@@ -542,6 +569,7 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
     parte2.dispose();
     foco1.dispose();
     foco2.dispose();
+    _focusRG.dispose();
     controller.dispose();
     super.dispose();
   }

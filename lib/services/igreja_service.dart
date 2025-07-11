@@ -40,4 +40,13 @@ class IgrejaService {
       'convite': convite,
     });
   }
+
+  Future<IgrejaModel?> buscarPorId(String id) async {
+    final doc = await _collection.doc(id).get();
+    if (doc.exists) {
+      return IgrejaModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    }
+    return null;
+  }
+
 }

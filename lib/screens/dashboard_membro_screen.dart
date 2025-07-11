@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'cadastro_membro_screen.dart';
 import 'welcome_screen.dart';
+import 'cultos_screen.dart';
 
 class DashboardMembroScreen extends StatefulWidget {
   final String nome;
@@ -185,121 +186,86 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Olá ${widget.nome}, bem-vindo ao BOA TERRA.',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(widget.igrejaNome, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-            const SizedBox(height: 24),
-            _buildBotaoDash('Cultos', Icons.access_time, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CultosScreen(igrejaId: widget.igrejaId),
-                ),
-              );
-            }),
-            _buildBotaoDash('Recados do Pastor', Icons.announcement, () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => RecadosScreen(userId: widget.userId),
-              ));
-            }, badge: recadosNaoLidos),
-            _buildBotaoDash('Pedidos de Oração', Icons.volunteer_activism, () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => PedidoOracaoScreen(userId: widget.userId),
-              ));
-            }),
-            _buildBotaoDash('Eventos', Icons.event, () {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => EventosScreen(userId: widget.userId),
-              ));
-            }, badge: eventosNaoLidos),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Editar Cadastro"),
-                  onPressed: dadosUsuario == null
-                      ? null
-                      : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CadastroMembroScreen(
-                          dadosPreenchidos: dadosUsuario!,
-                          userId: widget.userId,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Olá ${widget.nome}, bem-vindo ao BOA TERRA.',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(widget.igrejaNome, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 24),
+              _buildBotaoDash('Cultos', Icons.access_time, () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CultosScreen(igrejaId: widget.igrejaId),
+                  ),
+                );
+              }),
+              _buildBotaoDash('Recados do Pastor', Icons.announcement, () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => RecadosScreen(userId: widget.userId),
+                ));
+              }, badge: recadosNaoLidos),
+              _buildBotaoDash('Pedidos de Oração', Icons.volunteer_activism, () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => PedidoOracaoScreen(userId: widget.userId),
+                ));
+              }),
+              _buildBotaoDash('Eventos', Icons.event, () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => EventosScreen(userId: widget.userId),
+                ));
+              }, badge: eventosNaoLidos),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.edit),
+                    label: const Text("Editar Cadastro"),
+                    onPressed: dadosUsuario == null
+                        ? null
+                        : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CadastroMembroScreen(
+                            dadosPreenchidos: dadosUsuario!,
+                            userId: widget.userId,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.delete),
-                  label: const Text("Excluir Cadastro"),
-                  onPressed: _confirmarExclusao,
-                  style: OutlinedButton.styleFrom(
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.delete),
+                    label: const Text("Excluir Cadastro"),
+                    onPressed: _confirmarExclusao,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _confirmarSaida,
+                  icon: const Icon(Icons.exit_to_app),
+                  label: const Text('Sair'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade50,
                     foregroundColor: Colors.red,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _confirmarSaida,
-                icon: const Icon(Icons.exit_to_app),
-                label: const Text('Sair'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade50,
-                  foregroundColor: Colors.red,
-                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class CultosScreen extends StatelessWidget {
-  final String igrejaId;
-  const CultosScreen({super.key, required this.igrejaId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Cultos")),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('igrejas').doc(igrejaId).get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || !snapshot.data!.exists) return const Center(child: Text("Dados não encontrados."));
-
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final horarios = data['horariosCulto'] as Map<String, dynamic>?;
-
-          if (horarios == null || horarios.isEmpty) return const Center(child: Text("Nenhum culto cadastrado."));
-
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: horarios.entries.map((e) {
-              final dia = e.key;
-              final horariosDoDia = List<String>.from(e.value ?? []);
-              return Card(
-                child: ListTile(
-                  title: Text(dia),
-                  subtitle: Text(horariosDoDia.join(", ")),
-                ),
-              );
-            }).toList(),
-          );
-        },
       ),
     );
   }

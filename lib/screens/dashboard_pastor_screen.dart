@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'cadastro_pastor_screen.dart';
 import 'welcome_screen.dart';
 import 'cadastro_igreja_screen.dart';
+import 'cultos_screen.dart';
 import '../models/igreja_model.dart';
 import '../utils/compartilhador_convite.dart';
 
@@ -39,16 +40,30 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
   }
 
   Future<void> _carregarDadosUsuario() async {
-    final doc = await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).get();
-    if (doc.exists) {
-      final dados = doc.data();
-      setState(() {
-        dadosUsuario = dados;
-        conviteVinculado = dados?['convite'];
-      });
-      if (conviteVinculado != null) {
-        _carregarIgrejasDoConvite(conviteVinculado!);
+    if (widget.userId.trim().isEmpty) {
+      debugPrint('❌ userId vazio. Cancelando carregamento.');
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(widget.userId)
+          .get();
+
+      if (doc.exists) {
+        final dados = doc.data();
+        setState(() {
+          dadosUsuario = dados;
+          conviteVinculado = dados?['convite'];
+        });
+
+        if (conviteVinculado != null) {
+          _carregarIgrejasDoConvite(conviteVinculado!);
+        }
       }
+    } catch (e) {
+      debugPrint('Erro ao carregar dados do usuário: $e');
     }
   }
 
@@ -103,7 +118,6 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
       final convite = igreja.convite;
       final batch = FirebaseFirestore.instance.batch();
 
-      // Deleta todos os usuários da igreja (pastores, membros, obreiros)
       final usuarios = await FirebaseFirestore.instance
           .collection('usuarios')
           .where('convite', isEqualTo: convite)
@@ -113,7 +127,6 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
         batch.delete(u.reference);
       }
 
-      // Deleta a igreja
       batch.delete(FirebaseFirestore.instance.collection('igrejas').doc(igreja.id));
 
       await batch.commit();
@@ -252,7 +265,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
         backgroundColor: Colors.purple.shade100,
         foregroundColor: Colors.black,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,6 +285,15 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                 style: const TextStyle(fontSize: 16, color: Colors.grey)),
             const SizedBox(height: 24),
 
+            _botaoDash("Cultos", Icons.schedule, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CultosScreen(igrejaId: widget.igrejaId),
+                ),
+              );
+            }),
+
             _botaoDash("Enviar Recados", Icons.message, () {}),
             _botaoDash("Gerenciar Eventos", Icons.event_available, () {}),
             _botaoDash("Visualizar Pedidos de Oração", Icons.favorite, () {}),
@@ -279,7 +301,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
 
             _listaIgrejasAdmin(),
 
-            const Spacer(),
+            const SizedBox(height: 24),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -310,15 +332,20 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _confirmarSaida,
-                icon: const Icon(Icons.exit_to_app),
-                label: const Text('Sair'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade50,
-                  foregroundColor: Colors.red,
+
+            Padding(
+              padding: EdgeInsets.only(bottom: 24),
+              child: Center(
+                child: ElevatedButton.icon(
+                  onPressed: _confirmarSaida,
+                  icon: const Icon(Icons.exit_to_app),
+                  label: const Text('Sair'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade50,
+                    foregroundColor: Colors.red,
+                  ),
                 ),
               ),
             ),

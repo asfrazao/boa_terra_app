@@ -162,45 +162,80 @@ class _CadastroPastorScreenState extends State<CadastroPastorScreen> {
       orElse: () => {'nome': 'Igreja desconhecida', 'admin_setor': ''},
     );
 
-    final sucesso = await CadastroUsuarioService.salvarCadastro(
-      context: context,
-      userId: widget.userId,
-      tipo: 'Pastor',
-      convite: conviteAtual!,
-      idIgreja: controller.igrejaSelecionada!,
-      nomeIgreja: igrejaSelecionadaMap['nome'] ?? '',
-      adminSetor: igrejaSelecionadaMap['admin_setor'] ?? '',
-      imagemBase64: controller.imagemBase64!,
-      nome: controller.nomeController.text,
-      sobrenome: controller.sobrenomeController.text,
-      rg: controller.rgController.text,
-      email: controller.emailController.text,
-      batismo: controller.batismoSelecionado,
-      extrasSelecionados: controller.funcoesSelecionadas,
-      senha: controller.senhaController.text,
-      repetirSenha: controller.repetirSenhaController.text,
-      grupo: null,
-    );
+    String? userIdFinal;
 
-    if (sucesso) {
-      _mostrarSnack('✅ Cadastro salvo com sucesso!');
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DashboardPastorScreen(
-            nome: controller.nomeController.text,
-            igrejaNome: igrejaSelecionadaMap['nome'] ?? '',
-            userId: widget.userId ?? '',
-            igrejaId: controller.igrejaSelecionada!, // ← ESTE AQUI
-          )
-
-        ),
-            (route) => false,
+    if (widget.userId == null) {
+      // Novo cadastro: salvar e obter o userId
+      userIdFinal = await CadastroUsuarioService.salvarCadastroERetornarId(
+        context: context,
+        tipo: 'Pastor',
+        convite: conviteAtual!,
+        idIgreja: controller.igrejaSelecionada!,
+        nomeIgreja: igrejaSelecionadaMap['nome'] ?? '',
+        adminSetor: igrejaSelecionadaMap['admin_setor'] ?? '',
+        imagemBase64: controller.imagemBase64!,
+        nome: controller.nomeController.text,
+        sobrenome: controller.sobrenomeController.text,
+        rg: controller.rgController.text,
+        email: controller.emailController.text,
+        batismo: controller.batismoSelecionado,
+        extrasSelecionados: controller.funcoesSelecionadas,
+        senha: controller.senhaController.text,
+        repetirSenha: controller.repetirSenhaController.text,
+        grupo: null,
       );
+
+      if (userIdFinal == null) {
+        setState(() => salvando = false);
+        return; // erro já tratado via snackbar
+      }
+    } else {
+      // Edição
+      final sucesso = await CadastroUsuarioService.salvarCadastro(
+        context: context,
+        userId: widget.userId,
+        tipo: 'Pastor',
+        convite: conviteAtual!,
+        idIgreja: controller.igrejaSelecionada!,
+        nomeIgreja: igrejaSelecionadaMap['nome'] ?? '',
+        adminSetor: igrejaSelecionadaMap['admin_setor'] ?? '',
+        imagemBase64: controller.imagemBase64!,
+        nome: controller.nomeController.text,
+        sobrenome: controller.sobrenomeController.text,
+        rg: controller.rgController.text,
+        email: controller.emailController.text,
+        batismo: controller.batismoSelecionado,
+        extrasSelecionados: controller.funcoesSelecionadas,
+        senha: controller.senhaController.text,
+        repetirSenha: controller.repetirSenhaController.text,
+        grupo: null,
+      );
+
+      if (!sucesso) {
+        setState(() => salvando = false);
+        return;
+      }
+
+      userIdFinal = widget.userId;
     }
+
+    _mostrarSnack('✅ Cadastro salvo com sucesso!');
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DashboardPastorScreen(
+          nome: controller.nomeController.text,
+          igrejaNome: igrejaSelecionadaMap['nome'] ?? '',
+          userId: userIdFinal ?? '',
+          igrejaId: controller.igrejaSelecionada!,
+        ),
+      ),
+          (route) => false,
+    );
 
     setState(() => salvando = false);
   }
+
 
   Widget _etapaConvite() => Column(
     children: [
@@ -385,18 +420,27 @@ class _CadastroPastorScreenState extends State<CadastroPastorScreen> {
                           color: Colors.deepPurple)),
                   const SizedBox(height: 30),
                   conteudo,
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                            (route) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Voltar'),
+
+                  const SizedBox(height: 12), // Espaço acima do botão
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 16), // Margem inferior
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                              (route) => false,
+                        );
+                      },
+                      icon: const Icon(Icons.exit_to_app),
+                      label: const Text('Sair'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
                   ),
+
                 ],
               ),
             ),
