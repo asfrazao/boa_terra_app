@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'cadastro_obreiro_screen.dart';
-import 'cultos_screen.dart';
-import 'welcome_screen.dart';
+import '../cadastro/cadastro_obreiro_screen.dart';
+import '../../widgets/cultos.dart';
+import '../welcome_screen.dart';
 
 class DashboardObreiroScreen extends StatefulWidget {
   final String nome;
@@ -114,7 +114,7 @@ class _DashboardObreiroScreenState extends State<DashboardObreiroScreen> {
                     (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple[100]),
             child: const Text('Sim, Sair'),
           ),
         ],

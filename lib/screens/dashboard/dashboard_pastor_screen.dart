@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'cadastro_pastor_screen.dart';
-import 'welcome_screen.dart';
-import 'cadastro_igreja_screen.dart';
-import 'cultos_screen.dart';
-import '../models/igreja_model.dart';
-import '../utils/compartilhador_convite.dart';
+import '../cadastro/cadastro_pastor_screen.dart';
+import '../welcome_screen.dart';
+import '../cadastro/cadastro_igreja_screen.dart';
+import '../../widgets/cultos.dart';
+import '../../models/igreja_model.dart';
+import '../../utils/compartilhador_convite.dart';
 
 class DashboardPastorScreen extends StatefulWidget {
   final String nome;
@@ -185,7 +185,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                     (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple[100]),
             child: const Text('Sim, Sair'),
           ),
         ],

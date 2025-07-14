@@ -181,10 +181,10 @@ class IgrejaCadastroController extends ChangeNotifier {
     );
   }
 
-  Future<void> excluirIgreja(String convite) async {
-    if (convite.isEmpty) return;
+  void excluirIgreja(IgrejaModel model) async {
+    final convite = model.convite;
+    if (convite == null || convite.isEmpty) return;
 
-    // Mostra um loading
     showDialog(
       context: formKey.currentContext!,
       barrierDismissible: false,
@@ -212,17 +212,16 @@ class IgrejaCadastroController extends ChangeNotifier {
         await doc.reference.delete();
       }
 
-      // Revalida a chave para atualizar a lista
       await validarChave();
 
       if (formKey.currentContext!.mounted) {
-        Navigator.pop(formKey.currentContext!); // fecha o loading
+        Navigator.pop(formKey.currentContext!);
         ScaffoldMessenger.of(formKey.currentContext!).showSnackBar(
           const SnackBar(content: Text('✅ Igreja e usuários excluídos com sucesso.')),
         );
       }
     } catch (e) {
-      Navigator.pop(formKey.currentContext!); // fecha o loading
+      Navigator.pop(formKey.currentContext!);
       if (formKey.currentContext!.mounted) {
         ScaffoldMessenger.of(formKey.currentContext!).showSnackBar(
           SnackBar(content: Text('❌ Erro ao excluir: $e')),
@@ -230,5 +229,6 @@ class IgrejaCadastroController extends ChangeNotifier {
       }
     }
   }
+
 
 }

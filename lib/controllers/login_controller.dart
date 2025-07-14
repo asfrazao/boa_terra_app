@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../screens/dashboard_membro_screen.dart';
-import '../screens/dashboard_obreiro_screen.dart';
-import '../screens/dashboard_pastor_screen.dart';
+import '../screens/dashboard/dashboard_membro_screen.dart';
+import '../screens/dashboard/dashboard_obreiro_screen.dart';
+import '../screens/dashboard/dashboard_pastor_screen.dart';
 
 class LoginController {
   Future<Widget?> realizarLogin({

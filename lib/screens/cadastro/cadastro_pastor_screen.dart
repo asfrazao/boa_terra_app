@@ -1,15 +1,14 @@
-// IMPORTS
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../controllers/cadastro_pastor_controller.dart';
-import '../services/cadastro_usuario_service.dart';
-import '../utils/validador_convite.dart';
-import '../utils/compact_image_helper.dart';
-import '../widgets/campos_cadastro_pastor.dart';
-import 'dashboard_pastor_screen.dart';
-import 'welcome_screen.dart';
+import '../../controllers/cadastro_pastor_controller.dart';
+import '../../services/cadastro_usuario_service.dart';
+import '../../utils/validador_convite.dart';
+import '../../utils/compact_image_helper.dart';
+import '../../widgets/campos/campos_cadastro_pastor.dart';
+import '../dashboard/dashboard_pastor_screen.dart';
+import '../welcome_screen.dart';
 
 class CadastroPastorScreen extends StatefulWidget {
   final String? userId;

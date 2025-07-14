@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'welcome_screen.dart';
-import '../controllers/igreja_cadastro_controller.dart';
-import '../widgets/igreja_list_admin.dart';
-import '../widgets/dias_horario_selector.dart';
-import '../models/igreja_model.dart';
+import '../welcome_screen.dart';
+import '../../controllers/cadastro_igreja_controller.dart';
+import '../../widgets/campos/campos_cadastro_igreja.dart';
+import '../../widgets/dias_horario_selector.dart';
+import '../../models/igreja_model.dart';
 
 class CadastroIgrejaScreen extends StatelessWidget {
   final IgrejaModel? igrejaEditavel;
@@ -67,8 +67,8 @@ class _CadastroIgrejaView extends StatelessWidget {
                     child: Column(
                       children: [
                         if (controller.igrejaSelecionada == null)
-                          IgrejaListAdmin(
-                            igrejas: controller.igrejasEncontradas,
+                          IgrejaCampos(
+                            tipo: TipoExibicaoIgreja.listaAdmin,
                             onEditar: controller.preencherCampos,
                             onExcluir: controller.excluirIgreja,
                           ),

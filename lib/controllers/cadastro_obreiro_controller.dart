@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'usuario_cadastro_controller.dart';
+import 'cadastro_usuario_controller.dart';
 
 class CadastroObreiroController extends UsuarioCadastroController {
   // Campos específicos do Obreiro

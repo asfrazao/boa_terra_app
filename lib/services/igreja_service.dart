@@ -49,4 +49,12 @@ class IgrejaService {
     return null;
   }
 
+  Future<List<IgrejaModel>> listarTodas() async {
+    final snapshot = await _collection.get();
+    return snapshot.docs.map(
+            (doc) => IgrejaModel.fromMap(doc.id, doc.data() as Map<String, dynamic>)
+    ).toList();
+  }
+
+
 }

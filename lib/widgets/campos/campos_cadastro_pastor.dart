@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../controllers/cadastro_pastor_controller.dart';
-import 'campo_senha.dart';
+import '../../controllers/cadastro_pastor_controller.dart';
+import '../campo_senha.dart';
 
 class CamposCadastroPastor extends StatefulWidget {
   final CadastroPastorController controller;

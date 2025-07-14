@@ -1,37 +1,32 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../controllers/cadastro_obreiro_controller.dart';
-import '../utils/validador_convite.dart';
-import '../utils/compact_image_helper.dart';
-import '../widgets/campos_cadastro_obreiro.dart';
-import '../services/cadastro_usuario_service.dart';
-import 'dashboard_obreiro_screen.dart';
-import 'welcome_screen.dart';
-import '../controllers/cadastro_obreiro_controller.dart';
 
-class CadastroObreiroScreen extends StatefulWidget {
+import '../../utils/validador_convite.dart';
+import '../../services/cadastro_usuario_service.dart';
+import '../../utils/compact_image_helper.dart';
+import '../../widgets/campo_senha.dart';
+import '../../controllers/cadastro_membro_controller.dart';
+import '../../widgets/campos/campos_cadastro_membro.dart';
+import '../dashboard/dashboard_membro_screen.dart';
+import '../welcome_screen.dart';
+
+class CadastroMembroScreen extends StatefulWidget {
   final Map<String, dynamic>? dadosPreenchidos;
   final String? userId;
 
-  const CadastroObreiroScreen({
-    super.key,
-    this.dadosPreenchidos,
-    this.userId,
-  });
+  const CadastroMembroScreen({super.key, this.dadosPreenchidos, this.userId});
 
   @override
-  State<CadastroObreiroScreen> createState() => _CadastroObreiroScreenState();
+  State<CadastroMembroScreen> createState() => _CadastroMembroScreenState();
 }
 
-
-class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
-  final controller = CadastroObreiroController();
+class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
+  final controller = CadastroMembroController();
   final parte1 = TextEditingController();
   final parte2 = TextEditingController();
   final foco1 = FocusNode();
   final foco2 = FocusNode();
-  final FocusNode _focusRG = FocusNode();
 
   int etapaAtual = 0;
   bool salvando = false;
@@ -48,28 +43,33 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => foco1.requestFocus());
 
-    _focusRG.addListener(() {
-      if (_focusRG.hasFocus) {
-        final sobrenome = controller.sobrenomeController.text.trim();
-        if (sobrenome.split(' ').length > 1) {
-          controller.sobrenomeController.clear();
+    if (widget.dadosPreenchidos != null) {
+      controller.carregarDadosExistentes(widget.dadosPreenchidos!);
+      conviteAtual = widget.dadosPreenchidos!['convite'];
 
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text("Atenção"),
-              content: const Text("Use apenas o último sobrenome."),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("OK"),
-                ),
-              ],
-            ),
-          );
-        }
+      if (controller.idIgreja != null) {
+        FirebaseFirestore.instance
+            .collection('igrejas')
+            .doc(controller.idIgreja)
+            .get()
+            .then((doc) {
+          if (doc.exists) {
+            final data = doc.data()!;
+            setState(() {
+              igrejas = [
+                {
+                  'id': doc.id,
+                  'nome': data['denominacao'] ?? 'Sem nome',
+                  'admin_setor': data['admin_setor'] ?? '',
+                }
+              ];
+            });
+          }
+        });
       }
-    });
+
+      etapaAtual = 3;
+    }
   }
 
   Future<void> validarConvite() async {
@@ -168,26 +168,26 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
   }
 
   Future<void> salvar() async {
-    if (controller.igrejaSelecionada == null || controller.imagemBase64 == null) {
+    if (controller.idIgreja == null || controller.imagemBase64 == null) {
       _mostrarSnack('⚠️ Selecione a igreja e adicione a imagem');
       return;
     }
 
     setState(() => salvando = true);
 
-    final igrejaMap = igrejas.firstWhere(
-          (i) => i['id'] == controller.igrejaSelecionada,
+    final igrejaSelecionadaMap = igrejas.firstWhere(
+          (i) => i['id'] == controller.idIgreja,
       orElse: () => {'nome': 'Igreja desconhecida', 'admin_setor': ''},
     );
 
-    final sucesso = await CadastroUsuarioService.salvarCadastroObreiro(
+    final sucesso = await CadastroUsuarioService.salvarCadastro(
       context: context,
-      userId: null,
-      tipo: 'obreiro',
+      userId: widget.userId,
+      tipo: 'membro',
       convite: conviteAtual!,
-      idIgreja: controller.igrejaSelecionada!,
-      nomeIgreja: igrejaMap['nome'] ?? '',
-      adminSetor: igrejaMap['admin_setor'] ?? '',
+      idIgreja: controller.idIgreja!,
+      nomeIgreja: igrejaSelecionadaMap['nome'] ?? '',
+      adminSetor: igrejaSelecionadaMap['admin_setor'] ?? '',
       imagemBase64: controller.imagemBase64!,
       nome: controller.nomeController.text,
       sobrenome: controller.sobrenomeController.text,
@@ -195,18 +195,22 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
       email: controller.emailController.text,
       senha: controller.senhaController.text,
       repetirSenha: controller.repetirSenhaController.text,
-      cargo: controller.cargoSelecionado,
+      batismo: controller.batismo,
+      grupo: controller.grupoSelecionado,
+      extrasSelecionados: controller.funcoesSelecionadas,
     );
 
     if (sucesso && mounted) {
+      _mostrarSnack('✅ Cadastro salvo com sucesso!');
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => DashboardObreiroScreen(
+          builder: (_) => DashboardMembroScreen(
             nome: controller.nomeController.text,
-            igrejaNome: igrejaMap['nome'] ?? '',
+            igrejaNome: igrejaSelecionadaMap['nome'] ?? '',
             igrejaId: controller.idIgreja!,
-            userId: '',
+            userId: widget.userId ?? '',
           ),
         ),
             (route) => false,
@@ -227,8 +231,7 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
       Row(
         children: [
           const Text('BOATERRA-',
-              style:
-              TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
           SizedBox(
             width: 60,
             child: TextField(
@@ -269,11 +272,11 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
   Widget _etapaIgreja() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Selecione a igreja onde atua como obreiro:'),
+      const Text('Selecione a igreja em que você é membro:'),
       const SizedBox(height: 8),
       DropdownButtonFormField<String>(
-        value: igrejas.any((i) => i['id'] == controller.igrejaSelecionada)
-            ? controller.igrejaSelecionada
+        value: igrejas.any((i) => i['id'] == controller.idIgreja)
+            ? controller.idIgreja
             : null,
         isExpanded: true,
         decoration: const InputDecoration(border: OutlineInputBorder()),
@@ -286,13 +289,13 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
             child: Text(texto),
           );
         }).toList(),
-        onChanged: (val) => setState(() => controller.igrejaSelecionada = val),
+        onChanged: (val) => setState(() => controller.idIgreja = val),
       ),
       const SizedBox(height: 24),
       Center(
         child: ElevatedButton.icon(
           onPressed: () {
-            if (controller.igrejaSelecionada == null) {
+            if (controller.idIgreja == null) {
               _mostrarSnack('⚠️ Selecione a igreja');
               return;
             }
@@ -342,20 +345,17 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
         onTap: _mostrarOpcoesImagem,
         child: CircleAvatar(
           radius: 60,
-          backgroundImage: MemoryImage(base64Decode(controller.imagemBase64!)),
+          backgroundImage:
+          MemoryImage(base64Decode(controller.imagemBase64!)),
         ),
       ),
       const SizedBox(height: 16),
-      CamposCadastroObreiro(controller: controller),
-      const SizedBox(height: 24),
-      ElevatedButton.icon(
-        onPressed: salvar,
-        icon: const Icon(Icons.check),
-        label: const Text("Finalizar Cadastro"),
+      CamposCadastroMembro(
+        controller: controller,
+        onSalvar: salvar,
       ),
     ],
   );
-
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +379,7 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cadastro de Obreiro'),
+        title: const Text('Cadastro de Membro'),
         backgroundColor: Colors.deepPurple.shade100,
         foregroundColor: Colors.black,
       ),
@@ -390,7 +390,7 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  const Text('Bem-vindo ao cadastro de obreiros!',
+                  const Text('Bem-vindo ao cadastro de membros!',
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   const Text('BOA TERRA',
@@ -400,10 +400,9 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
                           color: Colors.deepPurple)),
                   const SizedBox(height: 30),
                   conteudo,
-
-                  const SizedBox(height: 12), // Espaço acima do botão
+                  const SizedBox(height: 12),
                   Padding(
-                    padding: EdgeInsets.only(bottom: 16), // Margem inferior
+                    padding: const EdgeInsets.only(bottom: 16),
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pushAndRemoveUntil(
@@ -440,7 +439,6 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
     parte2.dispose();
     foco1.dispose();
     foco2.dispose();
-    _focusRG.dispose();
     controller.dispose();
     super.dispose();
   }

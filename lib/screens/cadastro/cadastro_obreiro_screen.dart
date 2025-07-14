@@ -1,27 +1,32 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../controllers/cadastro_obreiro_controller.dart';
+import '../../utils/validador_convite.dart';
+import '../../utils/compact_image_helper.dart';
+import '../../widgets/campos/campos_cadastro_obreiro.dart';
+import '../../services/cadastro_usuario_service.dart';
+import '../dashboard/dashboard_obreiro_screen.dart';
+import '../welcome_screen.dart';
+import '../../controllers/cadastro_obreiro_controller.dart';
 
-import '../utils/validador_convite.dart';
-import '../services/cadastro_usuario_service.dart';
-import '../utils/compact_image_helper.dart';
-import '../widgets/campo_senha.dart';
-import '../controllers/cadastro_membro_controller.dart';
-import 'dashboard_membro_screen.dart';
-import 'welcome_screen.dart';
-
-class CadastroMembroScreen extends StatefulWidget {
+class CadastroObreiroScreen extends StatefulWidget {
   final Map<String, dynamic>? dadosPreenchidos;
   final String? userId;
 
-  const CadastroMembroScreen({super.key, this.dadosPreenchidos, this.userId});
+  const CadastroObreiroScreen({
+    super.key,
+    this.dadosPreenchidos,
+    this.userId,
+  });
 
   @override
-  State<CadastroMembroScreen> createState() => _CadastroMembroScreenState();
+  State<CadastroObreiroScreen> createState() => _CadastroObreiroScreenState();
 }
 
-class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
-  final controller = CadastroMembroController();
+
+class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
+  final controller = CadastroObreiroController();
   final parte1 = TextEditingController();
   final parte2 = TextEditingController();
   final foco1 = FocusNode();
@@ -35,13 +40,6 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
   List<Map<String, dynamic>> igrejas = [];
   String? conviteAtual;
 
-  final Map<String, List<String>> funcoesPorGrupo = {
-    'Grupo das irmãs': ['Lider', 'Regência', 'Consagração', 'Louvor', 'Nenhum'],
-    'Grupo dos jovens': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
-    'Grupo dos adolescentes': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
-    'Grupo das crianças': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
-  };
-
   String get conviteFormatado =>
       'BOATERRA-${parte1.text.toUpperCase()}-${parte2.text.toUpperCase()}';
 
@@ -50,7 +48,6 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => foco1.requestFocus());
 
-    // Validação do último sobrenome (igual ao pastor)
     _focusRG.addListener(() {
       if (_focusRG.hasFocus) {
         final sobrenome = controller.sobrenomeController.text.trim();
@@ -73,36 +70,7 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
         }
       }
     });
-
-    if (widget.dadosPreenchidos != null) {
-      controller.carregarDadosExistentes(widget.dadosPreenchidos!);
-      conviteAtual = widget.dadosPreenchidos!['convite'];
-
-      if (controller.idIgreja != null) {
-        FirebaseFirestore.instance
-            .collection('igrejas')
-            .doc(controller.idIgreja)
-            .get()
-            .then((doc) {
-          if (doc.exists) {
-            final data = doc.data()!;
-            setState(() {
-              igrejas = [
-                {
-                  'id': doc.id,
-                  'nome': data['denominacao'] ?? 'Sem nome',
-                  'admin_setor': data['admin_setor'] ?? '',
-                }
-              ];
-            });
-          }
-        });
-      }
-
-      etapaAtual = 3;
-    }
   }
-
 
   Future<void> validarConvite() async {
     final convite = conviteFormatado;
@@ -200,26 +168,26 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
   }
 
   Future<void> salvar() async {
-    if (controller.idIgreja == null || controller.imagemBase64 == null) {
+    if (controller.igrejaSelecionada == null || controller.imagemBase64 == null) {
       _mostrarSnack('⚠️ Selecione a igreja e adicione a imagem');
       return;
     }
 
     setState(() => salvando = true);
 
-    final igrejaSelecionadaMap = igrejas.firstWhere(
-          (i) => i['id'] == controller.idIgreja,
+    final igrejaMap = igrejas.firstWhere(
+          (i) => i['id'] == controller.igrejaSelecionada,
       orElse: () => {'nome': 'Igreja desconhecida', 'admin_setor': ''},
     );
 
-    final sucesso = await CadastroUsuarioService.salvarCadastro(
+    final sucesso = await CadastroUsuarioService.salvarCadastroObreiro(
       context: context,
-      userId: widget.userId,
-      tipo: 'membro',
+      userId: null,
+      tipo: 'obreiro',
       convite: conviteAtual!,
-      idIgreja: controller.idIgreja!,
-      nomeIgreja: igrejaSelecionadaMap['nome'] ?? '',
-      adminSetor: igrejaSelecionadaMap['admin_setor'] ?? '',
+      idIgreja: controller.igrejaSelecionada!,
+      nomeIgreja: igrejaMap['nome'] ?? '',
+      adminSetor: igrejaMap['admin_setor'] ?? '',
       imagemBase64: controller.imagemBase64!,
       nome: controller.nomeController.text,
       sobrenome: controller.sobrenomeController.text,
@@ -227,51 +195,25 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
       email: controller.emailController.text,
       senha: controller.senhaController.text,
       repetirSenha: controller.repetirSenhaController.text,
-      batismo: controller.batismo,
-      grupo: controller.grupoSelecionado,
-      extrasSelecionados: controller.funcoesSelecionadas,
+      cargo: controller.cargoSelecionado,
     );
 
     if (sucesso && mounted) {
-      _mostrarSnack('✅ Cadastro salvo com sucesso!');
-
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => DashboardMembroScreen(
+          builder: (_) => DashboardObreiroScreen(
             nome: controller.nomeController.text,
-            igrejaNome: igrejaSelecionadaMap['nome'] ?? '',
+            igrejaNome: igrejaMap['nome'] ?? '',
             igrejaId: controller.idIgreja!,
-            userId: widget.userId ?? '',
+            userId: '',
           ),
         ),
             (route) => false,
       );
     }
 
-
     setState(() => salvando = false);
-  }
-
-  void _irParaDashboard(String userId) {
-    final nome = controller.nomeController.text;
-    final igrejaNome = igrejas.firstWhere(
-          (i) => i['id'] == controller.idIgreja,
-      orElse: () => {'nome': 'Igreja desconhecida'},
-    )['nome'] ?? '';
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DashboardMembroScreen(
-          nome: nome,
-          igrejaId: controller.idIgreja!,
-          igrejaNome: igrejaNome,
-          userId: userId,
-        ),
-      ),
-          (route) => false,
-    );
   }
 
   void _mostrarSnack(String msg) {
@@ -327,11 +269,11 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
   Widget _etapaIgreja() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('Selecione a igreja em que você é membro:'),
+      const Text('Selecione a igreja onde atua como obreiro:'),
       const SizedBox(height: 8),
       DropdownButtonFormField<String>(
-        value: igrejas.any((i) => i['id'] == controller.idIgreja)
-            ? controller.idIgreja
+        value: igrejas.any((i) => i['id'] == controller.igrejaSelecionada)
+            ? controller.igrejaSelecionada
             : null,
         isExpanded: true,
         decoration: const InputDecoration(border: OutlineInputBorder()),
@@ -344,13 +286,13 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
             child: Text(texto),
           );
         }).toList(),
-        onChanged: (val) => setState(() => controller.idIgreja = val),
+        onChanged: (val) => setState(() => controller.igrejaSelecionada = val),
       ),
       const SizedBox(height: 24),
       Center(
         child: ElevatedButton.icon(
           onPressed: () {
-            if (controller.idIgreja == null) {
+            if (controller.igrejaSelecionada == null) {
               _mostrarSnack('⚠️ Selecione a igreja');
               return;
             }
@@ -400,98 +342,20 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
         onTap: _mostrarOpcoesImagem,
         child: CircleAvatar(
           radius: 60,
-          backgroundImage:
-          MemoryImage(base64Decode(controller.imagemBase64!)),
+          backgroundImage: MemoryImage(base64Decode(controller.imagemBase64!)),
         ),
       ),
       const SizedBox(height: 16),
-      TextFormField(
-          controller: controller.nomeController,
-          decoration: const InputDecoration(labelText: "Primeiro Nome")),
-      const SizedBox(height: 12),
-      TextFormField(
-          controller: controller.sobrenomeController,
-          decoration: const InputDecoration(labelText: "Último Nome")),
-      const SizedBox(height: 12),
-      TextFormField(
-        controller: controller.rgController,
-        focusNode: _focusRG,
-        decoration: const InputDecoration(labelText: "RG"),),
-      const SizedBox(height: 12),
-      TextFormField(
-          controller: controller.emailController,
-          decoration: const InputDecoration(labelText: "Email"),
-          keyboardType: TextInputType.emailAddress),
-      const SizedBox(height: 12),
-      DropdownButtonFormField<String>(
-        value: controller.batismo,
-        decoration: const InputDecoration(labelText: "Batizado?"),
-        items: const [
-          DropdownMenuItem(value: "Sim", child: Text("Sim")),
-          DropdownMenuItem(value: "Não", child: Text("Não")),
-        ],
-        onChanged: (value) =>
-            setState(() => controller.batismo = value ?? 'Não'),
-      ),
-      const SizedBox(height: 12),
-      DropdownButtonFormField<String>(
-        value: controller.grupoSelecionado,
-        decoration: const InputDecoration(
-            labelText: "A qual grupo o irmão(ã) pertence?"),
-        items: const [
-          DropdownMenuItem(
-              value: 'Grupo das irmãs', child: Text('Grupo das irmãs')),
-          DropdownMenuItem(
-              value: 'Grupo dos jovens', child: Text('Grupo dos jovens')),
-          DropdownMenuItem(
-              value: 'Grupo dos adolescentes',
-              child: Text('Grupo dos adolescentes')),
-          DropdownMenuItem(
-              value: 'Grupo das crianças',
-              child: Text('Grupo das crianças')),
-          DropdownMenuItem(value: 'Nenhum', child: Text('Nenhum')),
-        ],
-        onChanged: (grupo) {
-          setState(() {
-            controller.selecionarGrupo(grupo ?? '');
-          });
-        },
-      ),
-      const SizedBox(height: 12),
-      if (controller.grupoSelecionado != null &&
-          controller.grupoSelecionado != 'Nenhum')
-        Column(
-          children: [
-            const Divider(),
-            const Text('Funções no grupo:',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            ...funcoesPorGrupo[controller.grupoSelecionado]!.map((opcao) {
-              return CheckboxListTile(
-                title: Text(opcao),
-                value: controller.funcoesSelecionadas[opcao] ?? false,
-                onChanged: (value) {
-                  setState(() {
-                    controller.alternarFuncao(opcao, value ?? false);
-                  });
-                },
-              );
-            }).toList(),
-          ],
-        ),
-      const SizedBox(height: 12),
-      CampoSenha(
-        senhaController: controller.senhaController,
-        repetirSenhaController: controller.repetirSenhaController,
-      ),
-
+      CamposCadastroObreiro(controller: controller),
       const SizedBox(height: 24),
       ElevatedButton.icon(
         onPressed: salvar,
-        icon: const Icon(Icons.save),
+        icon: const Icon(Icons.check),
         label: const Text("Finalizar Cadastro"),
       ),
     ],
   );
+
 
   @override
   Widget build(BuildContext context) {
@@ -515,7 +379,7 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cadastro de Membro'),
+        title: const Text('Cadastro de Obreiro'),
         backgroundColor: Colors.deepPurple.shade100,
         foregroundColor: Colors.black,
       ),
@@ -526,9 +390,8 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  const Text('Bem-vindo ao cadastro de membros!',
-                      style:
-                      TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  const Text('Bem-vindo ao cadastro de obreiros!',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   const Text('BOA TERRA',
                       style: TextStyle(
@@ -557,8 +420,6 @@ class _CadastroMembroScreenState extends State<CadastroMembroScreen> {
                       ),
                     ),
                   ),
-
-
                 ],
               ),
             ),

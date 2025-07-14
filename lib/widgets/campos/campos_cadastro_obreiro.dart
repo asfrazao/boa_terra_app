@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../controllers/cadastro_obreiro_controller.dart';
-import 'campo_senha.dart';
+import '../../controllers/cadastro_obreiro_controller.dart';
+import '../campo_senha.dart';
 
 class CamposCadastroObreiro extends StatefulWidget {
   final CadastroObreiroController controller;
@@ -34,7 +34,7 @@ class _CamposCadastroObreiroState extends State<CamposCadastroObreiro> {
               content: const Text("Use apenas o último sobrenome."),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.pop(context),
                   child: const Text("OK"),
                 ),
               ],
@@ -71,11 +71,11 @@ class _CamposCadastroObreiroState extends State<CamposCadastroObreiro> {
           decoration: const InputDecoration(labelText: 'Último Nome'),
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
-          focusNode: _focusRG,
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: controller.rgController,
+          focusNode: _focusRG,
           decoration: const InputDecoration(labelText: 'RG'),
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,

@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'cadastro_membro_screen.dart';
-import 'welcome_screen.dart';
-import 'cultos_screen.dart';
+import '../cadastro/cadastro_membro_screen.dart';
+import '../welcome_screen.dart';
+import '../../widgets/cultos.dart';
 
 class DashboardMembroScreen extends StatefulWidget {
   final String nome;
@@ -36,13 +36,23 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
   }
 
   Future<void> _carregarDadosUsuario() async {
-    final doc = await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).get();
+    if (widget.userId.isEmpty) {
+      debugPrint('⚠️ userId está vazio. Cancelando _carregarDadosUsuario');
+      return;
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(widget.userId)
+        .get();
+
     if (doc.exists) {
       setState(() {
         dadosUsuario = doc.data();
       });
     }
   }
+
 
   Future<void> _contarRecadosNaoLidos() async {
     try {
@@ -168,7 +178,7 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
                     (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple[100]),
             child: const Text('Sim, Sair'),
           ),
         ],

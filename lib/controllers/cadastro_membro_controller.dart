@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class CadastroMembroController extends ChangeNotifier {
@@ -27,127 +26,81 @@ class CadastroMembroController extends ChangeNotifier {
     'Grupo das crianças': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
   };
 
-  bool get senhaValida => senhaController.text.trim().length >= 6;
-  bool get repetidaCorretamente => senhaController.text == repetirSenhaController.text;
-
-  bool validarCamposObrigatorios() {
-    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,4}$');
-
-    return nomeController.text.trim().isNotEmpty &&
-        sobrenomeController.text.trim().isNotEmpty &&
-        rgController.text.trim().isNotEmpty &&
-        emailRegex.hasMatch(emailController.text.trim()) &&
-        (imagemBase64 != null && imagemBase64!.isNotEmpty) &&
-        (idIgreja != null && idIgreja!.isNotEmpty) &&
-        (batismo != null) &&
-        senhaValida &&
-        repetidaCorretamente;
-  }
-
-  /// Retorna um mapa com os dados do membro prontos para salvar no Firestore
-  Map<String, dynamic> toFirestoreData({
-    required String nomeIgreja,
-    required String adminSetor,
-    required String tipo,
-    required String imagemBase64Final,
-    required bool isEditando,
-  }) {
-    final Map<String, dynamic> dados = {
-      'tipo': tipo,
-      'imagem': imagemBase64Final,
-      'nome': nomeController.text.trim(),
-      'sobrenome': sobrenomeController.text.trim(),
-      'nome_lower': nomeController.text.trim().toLowerCase(),
-      'sobrenome_lower': sobrenomeController.text.trim().toLowerCase(),
-      'rg': rgController.text.trim(),
-      'email': emailController.text.trim(),
-      'batismo': batismo ?? 'Não informado',
-      'igrejaId': idIgreja,
-      'igrejaNome': nomeIgreja,
-      'setorAdmin': adminSetor,
-      'convite': convite,
-    };
-
-    if (!isEditando) {
-      dados['senha'] = senhaController.text.trim();
-      dados['dataCadastro'] = FieldValue.serverTimestamp();
-    } else {
-      if (senhaValida) dados['senha'] = senhaController.text.trim();
-      dados['dataAtualizacao'] = FieldValue.serverTimestamp();
-    }
-
-    if (grupoSelecionado != null && grupoSelecionado != 'Nenhum') {
-      dados['grupo'] = grupoSelecionado;
-      for (final funcao in funcoesPorGrupo[grupoSelecionado] ?? []) {
-        dados[funcao] = funcoesSelecionadas[funcao] ?? false;
-      }
-    }
-
-    return dados;
-  }
-
-  void atualizarFuncoesSelecionadas(Map<String, bool> novas) {
-    funcoesSelecionadas
-      ..clear()
-      ..addAll(novas);
-    notifyListeners();
-  }
-
+  /// Método chamado ao selecionar grupo
   void selecionarGrupo(String grupo) {
     grupoSelecionado = grupo;
     funcoesSelecionadas.clear();
     notifyListeners();
   }
 
+
+  /// Método sem lógica (usado em casos anteriores)
   void alternarFuncao(String funcao, bool selecionado) {
     if (funcao == 'Nenhum') {
       if (selecionado) {
-        funcoesSelecionadas.clear();
-        funcoesSelecionadas['Nenhum'] = true;
+        // 🔁 Desativa todas as outras funções
+        funcoesPorGrupo[grupoSelecionado]?.forEach((f) {
+          funcoesSelecionadas[f] = (f == 'Nenhum');
+        });
       } else {
-        funcoesSelecionadas.remove('Nenhum');
+        funcoesSelecionadas['Nenhum'] = false;
       }
     } else {
       funcoesSelecionadas[funcao] = selecionado;
-      if (funcoesSelecionadas['Nenhum'] == true) {
-        funcoesSelecionadas.remove('Nenhum');
+
+      if (selecionado && funcoesSelecionadas['Nenhum'] == true) {
+        // ❌ Se outro for selecionado, desmarca "Nenhum"
+        funcoesSelecionadas['Nenhum'] = false;
       }
     }
+
     notifyListeners();
   }
 
-  void limpar() {
-    nomeController.clear();
-    sobrenomeController.clear();
-    rgController.clear();
-    emailController.clear();
-    senhaController.clear();
-    repetirSenhaController.clear();
-    batismo = 'Sim';
-    imagemBase64 = null;
-    idIgreja = null;
-    grupoSelecionado = null;
-    convite = null;
-    funcoesSelecionadas.clear();
-    notifyListeners();
-  }
 
+
+
+  /// Carrega dados ao editar um membro já existente
   void carregarDadosExistentes(Map<String, dynamic> dados) {
     nomeController.text = dados['nome'] ?? '';
     sobrenomeController.text = dados['sobrenome'] ?? '';
     rgController.text = dados['rg'] ?? '';
     emailController.text = dados['email'] ?? '';
+    batismo = dados['batismo'] ?? 'Sim';
     imagemBase64 = dados['imagem'];
     idIgreja = dados['igrejaId'];
-    batismo = dados['batismo'] ?? 'Não';
-    grupoSelecionado = dados['grupo'];
     convite = dados['convite'];
 
-    if (grupoSelecionado != null) {
-      final funcoes = funcoesPorGrupo[grupoSelecionado!] ?? [];
-      for (final f in funcoes) {
-        if (dados[f] == true) funcoesSelecionadas[f] = true;
+    if (dados.containsKey('grupo')) {
+      grupoSelecionado = dados['grupo'];
+    }
+
+    for (final key in dados.keys) {
+      if (key != 'grupo' &&
+          key != 'imagem' &&
+          key != 'nome' &&
+          key != 'sobrenome' &&
+          key != 'rg' &&
+          key != 'email' &&
+          key != 'senha' &&
+          key != 'batismo' &&
+          key != 'convite' &&
+          key != 'igrejaId' &&
+          key != 'igrejaNome') {
+        final valor = dados[key];
+        if (valor is bool) {
+          funcoesSelecionadas[key] = valor;
+        }
       }
     }
+  }
+
+  void disposeControllers() {
+    nomeController.dispose();
+    sobrenomeController.dispose();
+    rgController.dispose();
+    emailController.dispose();
+    senhaController.dispose();
+    repetirSenhaController.dispose();
   }
 }

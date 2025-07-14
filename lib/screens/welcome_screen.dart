@@ -3,8 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'register_type_screen.dart';
-import 'solicitar_chave_screen.dart';
+import '../utils/register_type.dart';
+import '../widgets/solicitar_chave.dart';
 import '../controllers/login_controller.dart';
 
 class WelcomeScreen extends StatefulWidget {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'campo_senha.dart';
+import '../campo_senha.dart';
 
 class CamposCadastroUsuario extends StatelessWidget {
   final TextEditingController nomeController;
