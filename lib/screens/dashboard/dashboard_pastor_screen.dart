@@ -7,6 +7,7 @@ import '../cadastro/cadastro_igreja_screen.dart';
 import '../../widgets/cultos.dart';
 import '../../models/igreja_model.dart';
 import '../../utils/compartilhador_convite.dart';
+import '../../screens/dashboard/subscreens/admin_usuario_screen.dart';
 
 class DashboardPastorScreen extends StatefulWidget {
   final String nome;
@@ -297,7 +298,18 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
             _botaoDash("Enviar Recados", Icons.message, () {}),
             _botaoDash("Gerenciar Eventos", Icons.event_available, () {}),
             _botaoDash("Visualizar Pedidos de Oração", Icons.favorite, () {}),
-            _botaoDash("Administrar Obreiros e Membros", Icons.groups, () {}),
+            if (conviteVinculado != null)
+              _botaoDash("Administrar Obreiros e Membros", Icons.groups, () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminUsuariosScreen(
+                      convite: conviteVinculado!,
+                      userId: widget.userId,
+                    ),
+                  ),
+                );
+              }),
 
             _listaIgrejasAdmin(),
 

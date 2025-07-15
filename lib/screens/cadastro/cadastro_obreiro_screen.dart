@@ -8,22 +8,16 @@ import '../../widgets/campos/campos_cadastro_obreiro.dart';
 import '../../services/cadastro_usuario_service.dart';
 import '../dashboard/dashboard_obreiro_screen.dart';
 import '../welcome_screen.dart';
-import '../../controllers/cadastro_obreiro_controller.dart';
 
 class CadastroObreiroScreen extends StatefulWidget {
   final Map<String, dynamic>? dadosPreenchidos;
   final String? userId;
 
-  const CadastroObreiroScreen({
-    super.key,
-    this.dadosPreenchidos,
-    this.userId,
-  });
+  const CadastroObreiroScreen({ super.key, this.dadosPreenchidos, this.userId,});
 
   @override
   State<CadastroObreiroScreen> createState() => _CadastroObreiroScreenState();
 }
-
 
 class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
   final controller = CadastroObreiroController();
@@ -53,7 +47,6 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
         final sobrenome = controller.sobrenomeController.text.trim();
         if (sobrenome.split(' ').length > 1) {
           controller.sobrenomeController.clear();
-
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
@@ -70,6 +63,35 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
         }
       }
     });
+
+    if (widget.dadosPreenchidos != null) {
+      controller.carregarDadosExistentes(widget.dadosPreenchidos!);
+
+
+      conviteAtual = widget.dadosPreenchidos!['convite'];
+      controller.igrejaSelecionada = widget.dadosPreenchidos!['igrejaId'];
+      controller.imagemBase64 = widget.dadosPreenchidos!['imagem'];
+
+      FirebaseFirestore.instance
+          .collection('igrejas')
+          .doc(controller.igrejaSelecionada)
+          .get()
+          .then((doc) {
+        if (doc.exists) {
+          final data = doc.data()!;
+          setState(() {
+            igrejas = [
+              {
+                'id': doc.id,
+                'nome': data['denominacao'] ?? 'Sem nome',
+                'admin_setor': data['admin_setor'] ?? '',
+              }
+            ];
+            etapaAtual = 3;
+          });
+        }
+      });
+    }
   }
 
   Future<void> validarConvite() async {
@@ -168,29 +190,34 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
   }
 
   Future<void> salvar() async {
-    if (controller.igrejaSelecionada == null || controller.imagemBase64 == null) {
+    if (controller.igrejaSelecionada == null || controller.imagemBase64?.isEmpty != false) {
       _mostrarSnack('⚠️ Selecione a igreja e adicione a imagem');
       return;
     }
 
+    final igrejaId = controller.igrejaSelecionada!;
+    final imagem = controller.imagemBase64!;
+    final nome = controller.nomeController.text.trim();
+    final sobrenome = controller.sobrenomeController.text.trim();
+
     setState(() => salvando = true);
 
     final igrejaMap = igrejas.firstWhere(
-          (i) => i['id'] == controller.igrejaSelecionada,
+          (i) => i['id'] == igrejaId,
       orElse: () => {'nome': 'Igreja desconhecida', 'admin_setor': ''},
     );
 
     final sucesso = await CadastroUsuarioService.salvarCadastroObreiro(
       context: context,
-      userId: null,
+      userId: widget.userId, // importante: mantém userId se estiver em modo edição
       tipo: 'obreiro',
       convite: conviteAtual!,
-      idIgreja: controller.igrejaSelecionada!,
+      idIgreja: igrejaId,
       nomeIgreja: igrejaMap['nome'] ?? '',
       adminSetor: igrejaMap['admin_setor'] ?? '',
-      imagemBase64: controller.imagemBase64!,
-      nome: controller.nomeController.text,
-      sobrenome: controller.sobrenomeController.text,
+      imagemBase64: imagem,
+      nome: nome,
+      sobrenome: sobrenome,
       rg: controller.rgController.text,
       email: controller.emailController.text,
       senha: controller.senhaController.text,
@@ -203,10 +230,10 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => DashboardObreiroScreen(
-            nome: controller.nomeController.text,
+            nome: nome,
             igrejaNome: igrejaMap['nome'] ?? '',
-            igrejaId: controller.idIgreja!,
-            userId: '',
+            igrejaId: igrejaId,
+            userId: widget.userId ?? '', // continua logado
           ),
         ),
             (route) => false,
@@ -226,9 +253,7 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
       const SizedBox(height: 12),
       Row(
         children: [
-          const Text('BOATERRA-',
-              style:
-              TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          const Text('BOATERRA-', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
           SizedBox(
             width: 60,
             child: TextField(
@@ -342,7 +367,9 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
         onTap: _mostrarOpcoesImagem,
         child: CircleAvatar(
           radius: 60,
-          backgroundImage: MemoryImage(base64Decode(controller.imagemBase64!)),
+          backgroundImage: controller.imagemBase64 != null
+              ? MemoryImage(base64Decode(controller.imagemBase64!))
+              : null,
         ),
       ),
       const SizedBox(height: 16),
@@ -355,7 +382,6 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
       ),
     ],
   );
-
 
   @override
   Widget build(BuildContext context) {
@@ -400,10 +426,9 @@ class _CadastroObreiroScreenState extends State<CadastroObreiroScreen> {
                           color: Colors.deepPurple)),
                   const SizedBox(height: 30),
                   conteudo,
-
-                  const SizedBox(height: 12), // Espaço acima do botão
+                  const SizedBox(height: 12),
                   Padding(
-                    padding: EdgeInsets.only(bottom: 16), // Margem inferior
+                    padding: const EdgeInsets.only(bottom: 16),
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pushAndRemoveUntil(
