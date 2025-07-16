@@ -1,0 +1,41 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "enviadoPor", "order": "ASCENDING" },
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" },
+        { "fieldPath": "dataEnvio", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../cadastro/cadastro_membro_screen.dart';
 import '../welcome_screen.dart';
 import '../../widgets/cultos.dart';
+import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
 
 class DashboardMembroScreen extends StatefulWidget {
   final String nome;
@@ -57,13 +58,15 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
   Future<void> _contarRecadosNaoLidos() async {
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collection('recados')
-          .where('destinatarios', arrayContains: widget.userId)
+          .collection('mensagens')
+          .where('igrejaId', isEqualTo: widget.igrejaId)
+          .where('visivelPara', arrayContains: 'membro')
+          .where('dataExpiracao', isGreaterThan: Timestamp.now())
           .get();
 
       final naoLidos = snapshot.docs.where((doc) {
-        final lidos = List<String>.from(doc['lidos'] ?? []);
-        return !lidos.contains(widget.userId);
+        final lidasPor = List<String>.from(doc['lidasPor'] ?? []);
+        return !lidasPor.contains(widget.userId);
       }).length;
 
       if (!mounted) return;
@@ -74,6 +77,7 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
       debugPrint("Erro ao contar recados: $e");
     }
   }
+
 
   Future<void> _contarEventosNaoLidos() async {
     try {
@@ -214,10 +218,18 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
                   ),
                 );
               }),
-              _buildBotaoDash('Recados do Pastor', Icons.announcement, () {
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => RecadosScreen(userId: widget.userId),
-                ));
+              _buildBotaoDash('Ler Recados do Pastor', Icons.mail, () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MensagensRecebidasScreen(
+                      userId: widget.userId,
+                      igrejaId: widget.igrejaId,
+                      tipoUsuario: 'membro', // importante
+                    ),
+                  ),
+                );
+                _contarRecadosNaoLidos(); // recarrega contador ao voltar
               }, badge: recadosNaoLidos),
               _buildBotaoDash('Pedidos de Oração', Icons.volunteer_activism, () {
                 Navigator.push(context, MaterialPageRoute(

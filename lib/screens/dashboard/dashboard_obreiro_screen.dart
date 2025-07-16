@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../cadastro/cadastro_obreiro_screen.dart';
 import '../../widgets/cultos.dart';
 import '../welcome_screen.dart';
+import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
 
 class DashboardObreiroScreen extends StatefulWidget {
   final String nome;
@@ -24,11 +25,13 @@ class DashboardObreiroScreen extends StatefulWidget {
 
 class _DashboardObreiroScreenState extends State<DashboardObreiroScreen> {
   Map<String, dynamic>? dadosUsuario;
+  int mensagensNaoLidas = 0;
 
   @override
   void initState() {
     super.initState();
     _carregarDadosUsuario();
+    _contarMensagensNaoLidas();
   }
 
   Future<void> _carregarDadosUsuario() async {
@@ -44,10 +47,60 @@ class _DashboardObreiroScreenState extends State<DashboardObreiroScreen> {
     }
   }
 
-  Widget _botaoDash(String titulo, IconData icone, VoidCallback onTap) {
+  Future<void> _contarMensagensNaoLidas() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('mensagens')
+        .where('igrejaId', isEqualTo: widget.igrejaId)
+        .where('dataExpiracao', isGreaterThan: Timestamp.now())
+        .where('visivelPara', arrayContains: 'obreiro')
+        .get();
+
+    int total = 0;
+    for (final doc in snapshot.docs) {
+      final lidas = doc.data().toString().contains('lidasPor')
+          ? List<String>.from(doc['lidasPor'])
+          : <String>[];
+      if (!lidas.contains(widget.userId)) {
+        total++;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        mensagensNaoLidas = total;
+      });
+    }
+  }
+
+  Widget _botaoDash(String titulo, IconData icone, VoidCallback onTap, {int? badge}) {
     return Card(
       child: ListTile(
-        leading: Icon(icone, size: 32),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(icone, size: 32),
+            if (badge != null && badge > 0)
+              Positioned(
+                right: -6,
+                top: -6,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$badge',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
         title: Text(titulo),
         trailing: const Icon(Icons.arrow_forward_ios, size: 18),
         onTap: onTap,
@@ -153,8 +206,19 @@ class _DashboardObreiroScreenState extends State<DashboardObreiroScreen> {
               }),
 
               _botaoDash("Ler Recados do Pastor", Icons.mail, () {
-                // TODO: Implementar visualização de recados
-              }),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MensagensRecebidasScreen(
+                      userId: widget.userId,
+                      igrejaId: widget.igrejaId,
+                      tipoUsuario: 'obreiro',
+                    ),
+                  ),
+                ).then((_) => _contarMensagensNaoLidas());
+              }, badge: mensagensNaoLidas),
+
+
               _botaoDash("Ver Pedidos de Oração", Icons.favorite_border, () {
                 // TODO: Implementar leitura dos pedidos de oração
               }),

@@ -1,0 +1,28 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "boa-terra-app",
+          "appId": "1:874343631841:android:630c30df4e6e7c512b60a0",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "boa-terra-app",
+          "configurations": {
+            "android": "1:874343631841:android:630c30df4e6e7c512b60a0",
+            "ios": "1:874343631841:ios:a392c4c2330ad5b82b60a0",
+            "macos": "1:874343631841:ios:a392c4c2330ad5b82b60a0",
+            "web": "1:874343631841:web:3af4e7519b4e72d42b60a0",
+            "windows": "1:874343631841:web:7dc296ca597635032b60a0"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "indexes": "firestore.indexes.json"
+  }
+}

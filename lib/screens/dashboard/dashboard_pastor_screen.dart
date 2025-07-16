@@ -8,6 +8,8 @@ import '../../widgets/cultos.dart';
 import '../../models/igreja_model.dart';
 import '../../utils/compartilhador_convite.dart';
 import '../../screens/dashboard/subscreens/admin_usuario_screen.dart';
+import '../dashboard/subscreens/enviar_mensagem_screen.dart';
+import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
 
 class DashboardPastorScreen extends StatefulWidget {
   final String nome;
@@ -32,12 +34,14 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
   String? nomeIgrejaAtual;
   String? conviteVinculado;
   List<IgrejaModel> igrejasDoConvite = [];
+  int recadosNaoLidos = 0;
 
   @override
   void initState() {
     super.initState();
     _carregarDadosUsuario();
     _carregarNomeIgreja();
+    _contarRecadosNaoLidos();
   }
 
   Future<void> _carregarDadosUsuario() async {
@@ -79,19 +83,6 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
         nomeIgrejaAtual = 'Igreja não definida';
       });
     }
-  }
-
-  Future<void> _carregarIgrejasDoConvite(String convite) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('igrejas')
-        .where('convite', isEqualTo: convite)
-        .get();
-
-    setState(() {
-      igrejasDoConvite = snapshot.docs.map((doc) {
-        return IgrejaModel.fromMap(doc.id, doc.data());
-      }).toList();
-    });
   }
 
   Future<void> _excluirIgrejaComConfirmacao(IgrejaModel igreja) async {
@@ -138,6 +129,43 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
         _carregarIgrejasDoConvite(conviteVinculado!);
       }
     }
+  }
+
+
+  Future<void> _contarRecadosNaoLidos() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('mensagens')
+          .where('igrejaId', isEqualTo: widget.igrejaId)
+          .where('visivelPara', arrayContains: 'pastor')
+          .where('dataExpiracao', isGreaterThan: Timestamp.now())
+          .get();
+
+      final naoLidos = snapshot.docs.where((doc) {
+        final lidasPor = List<String>.from(doc['lidasPor'] ?? []);
+        return !lidasPor.contains(widget.userId);
+      }).length;
+
+      if (!mounted) return;
+      setState(() {
+        recadosNaoLidos = naoLidos;
+      });
+    } catch (e) {
+      debugPrint("Erro ao contar recados de pastores: $e");
+    }
+  }
+
+  Future<void> _carregarIgrejasDoConvite(String convite) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('igrejas')
+        .where('convite', isEqualTo: convite)
+        .get();
+
+    setState(() {
+      igrejasDoConvite = snapshot.docs.map((doc) {
+        return IgrejaModel.fromMap(doc.id, doc.data());
+      }).toList();
+    });
   }
 
   void _confirmarExclusaoUsuario() {
@@ -194,10 +222,26 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
     );
   }
 
-  Widget _botaoDash(String titulo, IconData icone, VoidCallback onTap) {
+  Widget _botaoDash(String titulo, IconData icone, VoidCallback onTap, {int badge = 0}) {
     return Card(
       child: ListTile(
-        leading: Icon(icone, size: 32),
+        leading: Stack(
+          children: [
+            Icon(icone, size: 32),
+            if (badge > 0)
+              Positioned(
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                ),
+              ),
+          ],
+        ),
         title: Text(titulo),
         trailing: const Icon(Icons.arrow_forward_ios, size: 18),
         onTap: onTap,
@@ -212,8 +256,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Divider(),
-        const Text("Igrejas vinculadas ao seu convite:",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text("Igrejas vinculadas ao seu convite:", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         ...igrejasDoConvite.map((igreja) {
           return ListTile(
@@ -279,11 +322,9 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                 ),
               ),
             const SizedBox(height: 16),
-            Text("Olá ${widget.nome}, bem-vindo ao BOA TERRA.",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text("Olá ${widget.nome}, bem-vindo ao BOA TERRA.", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(nomeIgrejaAtual ?? 'Carregando...',
-                style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            Text(nomeIgrejaAtual ?? 'Carregando...', style: const TextStyle(fontSize: 16, color: Colors.grey)),
             const SizedBox(height: 24),
 
             _botaoDash("Cultos", Icons.schedule, () {
@@ -295,7 +336,32 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
               );
             }),
 
-            _botaoDash("Enviar Recados", Icons.message, () {}),
+            _botaoDash("Enviar Recados", Icons.message, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EnviarMensagemScreen(
+                    userId: widget.userId,
+                    igrejaId: widget.igrejaId,
+                  ),
+                ),
+              );
+            }),
+
+            _botaoDash('Ler Recados de Outros Pastores', Icons.mail, () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MensagensRecebidasScreen(
+                    userId: widget.userId,
+                    igrejaId: widget.igrejaId,
+                    tipoUsuario: 'pastor',
+                  ),
+                ),
+              );
+              _contarRecadosNaoLidos();
+            }, badge: recadosNaoLidos),
+
             _botaoDash("Gerenciar Eventos", Icons.event_available, () {}),
             _botaoDash("Visualizar Pedidos de Oração", Icons.favorite, () {}),
             if (conviteVinculado != null)
@@ -348,7 +414,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
             const SizedBox(height: 12),
 
             Padding(
-              padding: EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.only(bottom: 24),
               child: Center(
                 child: ElevatedButton.icon(
                   onPressed: _confirmarSaida,
