@@ -10,6 +10,7 @@ import '../../utils/compartilhador_convite.dart';
 import '../../screens/dashboard/subscreens/admin_usuario_screen.dart';
 import '../dashboard/subscreens/enviar_mensagem_screen.dart';
 import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
+import '../dashboard/subscreens/visualizar_pedidos_oracao_screen.dart';
 
 class DashboardPastorScreen extends StatefulWidget {
   final String nome;
@@ -35,6 +36,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
   String? conviteVinculado;
   List<IgrejaModel> igrejasDoConvite = [];
   int recadosNaoLidos = 0;
+  int pedidosOracaoNaoLidos = 0;
 
   @override
   void initState() {
@@ -42,6 +44,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
     _carregarDadosUsuario();
     _carregarNomeIgreja();
     _contarRecadosNaoLidos();
+    _contarPedidosOracaoNaoLidos();
   }
 
   Future<void> _carregarDadosUsuario() async {
@@ -142,7 +145,9 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
           .get();
 
       final naoLidos = snapshot.docs.where((doc) {
-        final lidasPor = List<String>.from(doc['lidasPor'] ?? []);
+        final lidasPor = doc.data().containsKey('lidasPor')
+            ? List<String>.from(doc['lidasPor'])
+            : <String>[];
         return !lidasPor.contains(widget.userId);
       }).length;
 
@@ -154,6 +159,32 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
       debugPrint("Erro ao contar recados de pastores: $e");
     }
   }
+
+  Future<void> _contarPedidosOracaoNaoLidos() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('pedidos_oracao')
+          .where('igrejaId', isEqualTo: widget.igrejaId)
+          .where('visivelPara', arrayContains: 'pastor')
+          .where('dataExpiracao', isGreaterThan: Timestamp.now())
+          .get();
+
+      final naoLidos = snapshot.docs.where((doc) {
+        final lidasPor = doc.data().containsKey('lidasPor')
+            ? List<String>.from(doc['lidasPor'])
+            : <String>[];
+        return !lidasPor.contains(widget.userId);
+      }).length;
+
+      if (!mounted) return;
+      setState(() {
+        pedidosOracaoNaoLidos = naoLidos;
+      });
+    } catch (e) {
+      debugPrint("Erro ao contar pedidos de oração não lidos: $e");
+    }
+  }
+
 
   Future<void> _carregarIgrejasDoConvite(String convite) async {
     final snapshot = await FirebaseFirestore.instance
@@ -234,7 +265,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Colors.red,
+                    color: Colors.orange,
                     shape: BoxShape.circle,
                   ),
                   child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 10)),
@@ -322,7 +353,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                 ),
               ),
             const SizedBox(height: 16),
-            Text("Olá ${widget.nome}, bem-vindo ao BOA TERRA.", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text("Olá Pastor ${widget.nome}, bem-vindo ao BOA TERRA.", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(nomeIgrejaAtual ?? 'Carregando...', style: const TextStyle(fontSize: 16, color: Colors.grey)),
             const SizedBox(height: 24),
@@ -363,8 +394,23 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
             }, badge: recadosNaoLidos),
 
             _botaoDash("Gerenciar Eventos", Icons.event_available, () {}),
-            _botaoDash("Visualizar Pedidos de Oração", Icons.favorite, () {}),
+
+            _botaoDash("Visualizar Pedidos de Oração", Icons.favorite, () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VisualizarPedidosOracaoScreen(
+                    igrejaId: widget.igrejaId,
+                    userId: widget.userId,
+                    tipoUsuario: 'pastor',
+                  ),
+                ),
+              );
+              _contarPedidosOracaoNaoLidos(); // atualizar após retorno
+            }, badge: pedidosOracaoNaoLidos),
+
             if (conviteVinculado != null)
+
               _botaoDash("Administrar Obreiros e Membros", Icons.groups, () {
                 Navigator.push(
                   context,

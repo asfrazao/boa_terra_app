@@ -4,6 +4,7 @@ import '../cadastro/cadastro_membro_screen.dart';
 import '../welcome_screen.dart';
 import '../../widgets/cultos.dart';
 import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
+import '../dashboard/subscreens/pedido_oracao_screen.dart';
 
 class DashboardMembroScreen extends StatefulWidget {
   final String nome;
@@ -231,11 +232,17 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
                 );
                 _contarRecadosNaoLidos(); // recarrega contador ao voltar
               }, badge: recadosNaoLidos),
+
               _buildBotaoDash('Pedidos de Oração', Icons.volunteer_activism, () {
                 Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => PedidoOracaoScreen(userId: widget.userId),
+                  builder: (_) => PedidoOracaoScreen(
+                    userId: widget.userId,
+                    igrejaId: widget.igrejaId,
+                  ),
                 ));
               }),
+
+
               _buildBotaoDash('Eventos', Icons.event, () {
                 Navigator.push(context, MaterialPageRoute(
                   builder: (_) => EventosScreen(userId: widget.userId),
@@ -303,16 +310,6 @@ class RecadosScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(appBar: AppBar(title: const Text("Recados")), body: const Center(child: Text("Recados em breve")));
-  }
-}
-
-class PedidoOracaoScreen extends StatelessWidget {
-  final String userId;
-  const PedidoOracaoScreen({super.key, required this.userId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text("Pedidos de Oração")), body: const Center(child: Text("Pedidos em breve")));
   }
 }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:boa_terra_app/models/validade_mensagem.dart';
+import 'package:boa_terra_app/models/enums/validade_mensagem.dart';
 
 class EnviarMensagemScreen extends StatefulWidget {
   final String userId;

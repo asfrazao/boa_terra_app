@@ -178,6 +178,15 @@ class CadastroUsuarioService {
     }
   }
 
+  Future<Map<String, dynamic>?> buscarUsuarioPorId(String userId) async {
+    final doc = await FirebaseFirestore.instance.collection('usuarios').doc(userId).get();
+    if (doc.exists) {
+      return doc.data();
+    }
+    return null;
+  }
+
+
   static Future<bool> salvarCadastroObreiro({
     required BuildContext context,
     String? userId,
