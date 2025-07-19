@@ -7,7 +7,7 @@ class CompartilhadorConvite {
   static Future<void> compartilharConvite({
     required String convite,
     String? nomeIgreja,
-    String linkApp = 'https://seuapp.com/download',
+    String linkApp = 'https://bit.ly/4kQDwxX',
   }) async {
     final String texto = '''
 📲 Olá! Seja bem-vindo(a) ao *Boa Terra App*!${nomeIgreja != null ? '\n\n🕊️ *$nomeIgreja* convidou você para se cadastrar.' : ''}
