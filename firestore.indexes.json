@@ -60,7 +60,73 @@
       "fields": [
         { "fieldPath": "igrejaId", "order": "ASCENDING" },
         { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pedidos_oracao",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" },
         { "fieldPath": "dataExpiracao", "order": "ASCENDING" },
+        { "fieldPath": "dataEnvio", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" },
+        { "fieldPath": "dataEvento", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "dataEvento", "order": "ASCENDING" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" },
+        { "fieldPath": "dataEvento", "order": "ASCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "visivelPara", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "enviadoPor", "order": "ASCENDING" },
+        { "fieldPath": "dataExpiracao", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "igrejaId", "order": "ASCENDING" },
+        { "fieldPath": "enviadoPor", "order": "ASCENDING" },
         { "fieldPath": "dataEnvio", "order": "DESCENDING" }
       ]
     }

@@ -5,11 +5,17 @@ import 'package:boa_terra_app/models/enums/validade_mensagem.dart';
 class EnviarMensagemScreen extends StatefulWidget {
   final String userId;
   final String igrejaId;
+  final Map<String, dynamic>? mensagemExistente;
+  final String? mensagemId;
+  final bool mostrarHistorico;
 
   const EnviarMensagemScreen({
     super.key,
     required this.userId,
     required this.igrejaId,
+    this.mensagemExistente,
+    this.mensagemId,
+    this.mostrarHistorico = true,
   });
 
   @override
@@ -26,6 +32,15 @@ class _EnviarMensagemScreenState extends State<EnviarMensagemScreen> {
     'Obreiros': false,
     'Membros': false,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.mensagemExistente != null) {
+      _tituloController.text = widget.mensagemExistente!['titulo'] ?? '';
+      _mensagemController.text = widget.mensagemExistente!['mensagem'] ?? '';
+    }
+  }
 
   void _limparTela() {
     _tituloController.clear();
@@ -50,6 +65,27 @@ class _EnviarMensagemScreenState extends State<EnviarMensagemScreen> {
     final selecionados =
     destinatarios.entries.where((entry) => entry.value).toList();
     return selecionados.isNotEmpty ? selecionados.first.key : null;
+  }
+
+  List<String> _mapearDestinatarioParaLista(String tipo) {
+    switch (tipo) {
+      case 'Todos':
+        return ['pastor', 'obreiro', 'membro'];
+      case 'Pastores':
+        return ['pastor'];
+      case 'Obreiros':
+        return ['obreiro'];
+      case 'Membros':
+        return ['membro'];
+      default:
+        return [];
+    }
+  }
+
+  void _mostrarAlerta(String texto) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(texto)),
+    );
   }
 
   void _enviarMensagem() async {
@@ -91,19 +127,29 @@ class _EnviarMensagemScreenState extends State<EnviarMensagemScreen> {
               dataEnvio.add(ValidadeMensagem.mensagemPadrao.duracao);
 
               try {
-                await FirebaseFirestore.instance.collection('mensagens').add({
-                  'titulo': titulo,
-                  'mensagem': mensagem,
-                  'dataEnvio': Timestamp.fromDate(dataEnvio),
-                  'dataExpiracao': Timestamp.fromDate(dataExpiracao),
-                  'enviadoPor': widget.userId,
-                  'igrejaId': widget.igrejaId,
-                  'visivelPara': _mapearDestinatarioParaLista(destino),
-                  'lidasPor': [], // ✅ ESSENCIAL para que a lógica funcione
-                });
+                if (widget.mensagemId != null) {
+                  await FirebaseFirestore.instance
+                      .collection('mensagens')
+                      .doc(widget.mensagemId)
+                      .update({
+                    'titulo': titulo,
+                    'mensagem': mensagem,
+                  });
+                  _mostrarAlerta('✅ Mensagem atualizada com sucesso!');
+                } else {
+                  await FirebaseFirestore.instance.collection('mensagens').add({
+                    'titulo': titulo,
+                    'mensagem': mensagem,
+                    'dataEnvio': Timestamp.fromDate(dataEnvio),
+                    'dataExpiracao': Timestamp.fromDate(dataExpiracao),
+                    'enviadoPor': widget.userId,
+                    'igrejaId': widget.igrejaId,
+                    'visivelPara': _mapearDestinatarioParaLista(destino),
+                    'lidasPor': [],
+                  });
+                  _mostrarAlerta('✅ Mensagem enviada com sucesso!');
+                }
 
-
-                _mostrarAlerta('✅ Mensagem enviada com sucesso!');
                 _limparTela();
               } catch (e) {
                 _mostrarAlerta('Erro ao enviar a mensagem: $e');
@@ -116,164 +162,37 @@ class _EnviarMensagemScreenState extends State<EnviarMensagemScreen> {
     );
   }
 
-  List<String> _mapearDestinatarioParaLista(String tipo) {
-    switch (tipo) {
-      case 'Todos':
-        return ['pastor', 'obreiro', 'membro'];
-      case 'Pastores':
-        return ['pastor'];
-      case 'Obreiros':
-        return ['obreiro'];
-      case 'Membros':
-        return ['membro'];
-      default:
-        return [];
+  void _confirmarExclusao(String mensagemId) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Excluir Mensagem'),
+        content: const Text('Sua mensagem será definitivamente excluída.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      await FirebaseFirestore.instance.collection('mensagens').doc(mensagemId).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Mensagem excluída com sucesso!')),
+        );
+      }
     }
-  }
-
-
-  void _mostrarAlerta(String texto) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(texto)),
-    );
-  }
-
-  void _abrirDetalhesMensagem({
-    required String id,
-    required String titulo,
-    required String mensagem,
-    required DateTime dataEnvio,
-  }) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(titulo),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(mensagem, style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 16),
-              Text(
-                'Enviado em: ${dataEnvio.day}/${dataEnvio.month}/${dataEnvio.year} às ${dataEnvio.hour}:${dataEnvio.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    tooltip: 'Editar mensagem',
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _editarMensagem(id, titulo, mensagem);
-                    },
-                  ),
-                  IconButton(
-                    tooltip: 'Excluir mensagem',
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _confirmarExclusao(id);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editarMensagem(String id, String tituloAtual, String mensagemAtual) {
-    final tituloController = TextEditingController(text: tituloAtual);
-    final mensagemController = TextEditingController(text: mensagemAtual);
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Editar Mensagem'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: tituloController,
-              decoration: const InputDecoration(labelText: 'Título'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: mensagemController,
-              decoration: const InputDecoration(labelText: 'Mensagem'),
-              maxLines: 5,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('mensagens')
-                  .doc(id)
-                  .update({
-                'titulo': tituloController.text.trim(),
-                'mensagem': mensagemController.text.trim(),
-              });
-              Navigator.pop(context);
-              _mostrarAlerta('Mensagem atualizada com sucesso!');
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmarExclusao(String id) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirmar exclusão'),
-        content: const Text(
-          'Sua mensagem será definitivamente excluída.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Voltar'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('mensagens')
-                  .doc(id)
-                  .delete();
-              Navigator.pop(context);
-              _mostrarAlerta('Sua mensagem foi excluída com sucesso');
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Enviar Recado')),
+      appBar: AppBar(title: const Text('Enviar Recados')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -293,122 +212,46 @@ class _EnviarMensagemScreenState extends State<EnviarMensagemScreen> {
               }).toList(),
             ),
             const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child:
-              Text('Título:', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 8),
             TextField(
               controller: _tituloController,
               decoration: const InputDecoration(
-                hintText: 'Digite o título da mensagem...',
+                labelText: 'Título',
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Mensagem:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Expanded(
               child: TextField(
                 controller: _mensagemController,
                 maxLines: null,
                 expands: true,
+                textAlignVertical: TextAlignVertical.top,
                 decoration: const InputDecoration(
-                  hintText: 'Digite sua mensagem aqui...',
+                  labelText: 'Mensagem',
                   border: OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _enviarMensagem,
                     icon: const Icon(Icons.send),
                     label: const Text('Enviar'),
+                    onPressed: _enviarMensagem,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      _limparTela();
-                      Navigator.pop(context);
-                    },
                     icon: const Icon(Icons.arrow_back),
                     label: const Text('Voltar'),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 30),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Mensagens Enviadas:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('mensagens')
-                    .where('enviadoPor', isEqualTo: widget.userId)
-                    .where('igrejaId', isEqualTo: widget.igrejaId)
-                    .where('dataExpiracao', isGreaterThan: Timestamp.now())
-                    .orderBy('dataExpiracao', descending: false)
-                    .snapshots(),
-
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final docs = snapshot.data?.docs ?? [];
-
-                  if (docs.isEmpty) {
-                    return const Center(
-                        child: Text('Nenhuma mensagem enviada ainda.'));
-                  }
-
-                  return ListView.builder(
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      final doc = docs[index];
-                      final titulo = doc['titulo'] ?? '';
-                      final mensagem = doc['mensagem'] ?? '';
-                      final dataEnvio =
-                      (doc['dataEnvio'] as Timestamp).toDate();
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        child: ListTile(
-                          title: Text(titulo),
-                          subtitle: Text(
-                            'Enviado em: ${dataEnvio.day}/${dataEnvio.month} às ${dataEnvio.hour}:${dataEnvio.minute.toString().padLeft(2, '0')}',
-                          ),
-                          onTap: () {
-                            _abrirDetalhesMensagem(
-                              id: doc.id,
-                              titulo: titulo,
-                              mensagem: mensagem,
-                              dataEnvio: dataEnvio,
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
         ),

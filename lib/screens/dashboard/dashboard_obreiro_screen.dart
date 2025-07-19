@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../cadastro/cadastro_obreiro_screen.dart';
 import '../../widgets/cultos.dart';
 import '../welcome_screen.dart';
 import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
+import 'subscreens/pedido_oracao_screen.dart';
+import '../dashboard/subscreens/eventos_recebidos_screen.dart';
+import '../../utils/compartilhador_convite.dart';
 
 class DashboardObreiroScreen extends StatefulWidget {
   final String nome;
@@ -25,25 +29,45 @@ class DashboardObreiroScreen extends StatefulWidget {
 
 class _DashboardObreiroScreenState extends State<DashboardObreiroScreen> {
   Map<String, dynamic>? dadosUsuario;
+  String? conviteVinculado;
+  String? cidade;
+  String? estado;
   int mensagensNaoLidas = 0;
+  int pedidosNaoLidos = 0;
+  int eventosNaoLidos = 0;
 
   @override
   void initState() {
     super.initState();
     _carregarDadosUsuario();
     _contarMensagensNaoLidas();
+    _contarPedidosNaoLidos();
+    _contarEventosNaoLidos();
   }
 
   Future<void> _carregarDadosUsuario() async {
-    final doc = await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(widget.userId)
-        .get();
-
+    final doc = await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).get();
     if (doc.exists) {
+      final dados = doc.data();
       setState(() {
-        dadosUsuario = doc.data();
+        dadosUsuario = dados;
+        conviteVinculado = dados?['convite'];
       });
+
+      if (conviteVinculado != null) {
+        final igrejaSnap = await FirebaseFirestore.instance
+            .collection('igrejas')
+            .where('convite', isEqualTo: conviteVinculado)
+            .limit(1)
+            .get();
+        if (igrejaSnap.docs.isNotEmpty) {
+          final igreja = igrejaSnap.docs.first.data();
+          setState(() {
+            cidade = igreja['cidade'];
+            estado = igreja['estado'];
+          });
+        }
+      }
     }
   }
 
@@ -51,52 +75,66 @@ class _DashboardObreiroScreenState extends State<DashboardObreiroScreen> {
     final snapshot = await FirebaseFirestore.instance
         .collection('mensagens')
         .where('igrejaId', isEqualTo: widget.igrejaId)
-        .where('dataExpiracao', isGreaterThan: Timestamp.now())
         .where('visivelPara', arrayContains: 'obreiro')
+        .where('dataExpiracao', isGreaterThan: Timestamp.now())
         .get();
 
-    int total = 0;
-    for (final doc in snapshot.docs) {
-      final lidas = doc.data().toString().contains('lidasPor')
-          ? List<String>.from(doc['lidasPor'])
-          : <String>[];
-      if (!lidas.contains(widget.userId)) {
-        total++;
-      }
-    }
+    final count = snapshot.docs.where((doc) {
+      final lidasPor = doc.data().containsKey('lidasPor') ? List<String>.from(doc['lidasPor']) : [];
+      return !lidasPor.contains(widget.userId);
+    }).length;
 
-    if (mounted) {
-      setState(() {
-        mensagensNaoLidas = total;
-      });
-    }
+    setState(() => mensagensNaoLidas = count);
   }
 
-  Widget _botaoDash(String titulo, IconData icone, VoidCallback onTap, {int? badge}) {
+  Future<void> _contarPedidosNaoLidos() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('pedidos_oracao')
+        .where('igrejaId', isEqualTo: widget.igrejaId)
+        .where('visivelPara', arrayContains: 'obreiro')
+        .where('dataExpiracao', isGreaterThan: Timestamp.now())
+        .get();
+
+    final count = snapshot.docs.where((doc) {
+      final lidasPor = doc.data().containsKey('lidasPor') ? List<String>.from(doc['lidasPor']) : [];
+      return !lidasPor.contains(widget.userId);
+    }).length;
+
+    setState(() => pedidosNaoLidos = count);
+  }
+
+  Future<void> _contarEventosNaoLidos() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('eventos')
+        .where('igrejaId', isEqualTo: widget.igrejaId)
+        .where('visivelPara', arrayContains: 'obreiro')
+        .where('dataExpiracao', isGreaterThan: Timestamp.now())
+        .get();
+
+    final count = snapshot.docs.where((doc) {
+      final lidasPor = doc.data().containsKey('lidasPor') ? List<String>.from(doc['lidasPor']) : [];
+      return !lidasPor.contains(widget.userId);
+    }).length;
+
+    setState(() => eventosNaoLidos = count);
+  }
+
+  Widget _botao(String titulo, IconData icone, VoidCallback onTap, {int badge = 0}) {
     return Card(
       child: ListTile(
         leading: Stack(
-          clipBehavior: Clip.none,
           children: [
             Icon(icone, size: 32),
-            if (badge != null && badge > 0)
+            if (badge > 0)
               Positioned(
-                right: -6,
-                top: -6,
+                right: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.orange,
                     shape: BoxShape.circle,
                   ),
-                  child: Text(
-                    '$badge',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 10)),
                 ),
               ),
           ],
@@ -108,171 +146,174 @@ class _DashboardObreiroScreenState extends State<DashboardObreiroScreen> {
     );
   }
 
-  void _confirmarExclusao() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Excluir Cadastro'),
-        content: const Text(
-            'Você perderá o acesso à plataforma como obreiro. Deseja continuar?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () async {
-              Navigator.pop(context);
-              await FirebaseFirestore.instance
-                  .collection('usuarios')
-                  .doc(widget.userId)
-                  .delete();
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('✅ Cadastro excluído com sucesso.')),
-                );
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                      (route) => false,
-                );
-              }
-            },
-            icon: const Icon(Icons.delete),
-            label: const Text('Sim, Excluir'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmarSaida() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Sair'),
-        content: const Text('Deseja realmente sair do BOA TERRA?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                    (route) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple[100]),
-            child: const Text('Sim, Sair'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Dashboard do Obreiro"),
-        backgroundColor: Colors.deepPurple.shade100,
+        backgroundColor: Colors.purple.shade100,
         foregroundColor: Colors.black,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Olá ${widget.nome}, bem-vindo ao BOA TERRA.",
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(widget.igrejaNome,
-                  style: const TextStyle(fontSize: 16, color: Colors.grey)),
-              const SizedBox(height: 24),
-
-              _botaoDash("Cultos", Icons.access_time, () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CultosScreen(igrejaId: widget.igrejaId),
-                  ),
-                );
-              }),
-
-              _botaoDash("Ler Recados do Pastor", Icons.mail, () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MensagensRecebidasScreen(
-                      userId: widget.userId,
-                      igrejaId: widget.igrejaId,
-                      tipoUsuario: 'obreiro',
-                    ),
-                  ),
-                ).then((_) => _contarMensagensNaoLidas());
-              }, badge: mensagensNaoLidas),
-
-
-              _botaoDash("Ver Pedidos de Oração", Icons.favorite_border, () {
-                // TODO: Implementar leitura dos pedidos de oração
-              }),
-              _botaoDash("Eventos e Programações", Icons.event, () {
-                // TODO: Implementar eventos
-              }),
-
-              const SizedBox(height: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (dadosUsuario?['fotoBase64'] != null)
+              Center(
+                child: CircleAvatar(
+                  radius: 48,
+                  backgroundImage: MemoryImage(base64Decode(dadosUsuario!['fotoBase64'])),
+                ),
+              ),
+            const SizedBox(height: 5),
+            Text("Olá ${widget.nome}, bem-vindo ao BOA TERRA.", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            if (cidade != null && estado != null)
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.edit),
-                    label: const Text("Editar Cadastro"),
-                    onPressed: dadosUsuario == null
-                        ? null
-                        : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CadastroObreiroScreen(
-                            dadosPreenchidos: dadosUsuario!,
-                            userId: widget.userId,
-                          ),
-                        ),
-                      );
+                  Text("${widget.igrejaNome}\n$cidade, $estado", style: const TextStyle(color: Colors.grey)),
+                  IconButton(
+                    icon: const Icon(Icons.share, color: Colors.green),
+                    tooltip: 'Compartilhar convite',
+                    onPressed: () async {
+                      if (conviteVinculado != null) {
+                        await CompartilhadorConvite.compartilharConvite(
+                          convite: conviteVinculado!,
+                          nomeIgreja: widget.igrejaNome,
+
+                        );
+                      }
                     },
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.delete),
-                    label: const Text("Excluir Cadastro"),
-                    onPressed: _confirmarExclusao,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _confirmarSaida,
-                  icon: const Icon(Icons.exit_to_app),
-                  label: const Text('Sair'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade50,
-                    foregroundColor: Colors.red,
+
+            const SizedBox(height: 8),
+
+            _botao("Cultos", Icons.schedule, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CultosScreen(igrejaId: widget.igrejaId),
+                ),
+              );
+            }),
+
+            _botao("Ler Recados do Pastor", Icons.mail, () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MensagensRecebidasScreen(
+                    userId: widget.userId,
+                    igrejaId: widget.igrejaId,
+                    tipoUsuario: 'obreiro',
                   ),
                 ),
+              );
+              _contarMensagensNaoLidas();
+            }, badge: mensagensNaoLidas),
+
+            _botao("Pedidos de Oração", Icons.favorite, () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PedidoOracaoScreen(
+                    userId: widget.userId,
+                    igrejaId: widget.igrejaId,
+                  ),
+                ),
+              );
+              _contarPedidosNaoLidos();
+            }),
+
+            _botao("Eventos", Icons.event, () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EventosRecebidosScreen(
+                    userId: widget.userId,
+                    igrejaId: widget.igrejaId,
+                  ),
+                ),
+              );
+              _contarEventosNaoLidos();
+            }, badge: eventosNaoLidos),
+
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit),
+                  label: const Text("Editar Cadastro"),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CadastroObreiroScreen(
+                          dadosPreenchidos: dadosUsuario!,
+                          userId: widget.userId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete),
+                  label: const Text("Excluir Cadastro"),
+                  onPressed: () async {
+                    final confirmar = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text("Excluir Cadastro"),
+                        content: const Text("Você perderá acesso ao aplicativo. Deseja continuar?"),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text("Excluir"),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmar == true) {
+                      await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).delete();
+                      if (mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                              (route) => false,
+                        );
+                      }
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.exit_to_app),
+                label: const Text("Sair"),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                        (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade50,
+                  foregroundColor: Colors.red,
+                ),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

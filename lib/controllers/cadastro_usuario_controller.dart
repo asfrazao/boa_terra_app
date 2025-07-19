@@ -22,7 +22,6 @@ abstract class UsuarioCadastroController extends ChangeNotifier {
   List<Map<String, dynamic>> igrejas = [];
 
   /// ⚠️ Controladores legados (mover para controllers filhos no futuro)
-  /// Ainda presentes para compatibilidade com Membro/Pastor atuais
   @Deprecated('Use campos específicos em controllers filhos')
   final nomeController = TextEditingController();
 
@@ -44,6 +43,14 @@ abstract class UsuarioCadastroController extends ChangeNotifier {
   /// 🔎 Foco nos campos de convite
   final foco1 = FocusNode();
   final foco2 = FocusNode();
+
+  /// 🔐 Getters sanitizados (usados em controllers filhos)
+  String get nomeSanitizado => nomeController.text.trim();
+  String get sobrenomeSanitizado => sobrenomeController.text.trim();
+  String get rgSanitizado => rgController.text.trim();
+  String get emailSanitizado => emailController.text.trim();
+  String get senhaSanitizada => senhaController.text.trim();
+  String get repetirSenhaSanitizada => repetirSenhaController.text.trim();
 
   String get conviteFormatado =>
       'BOATERRA-${parte1.text.toUpperCase()}-${parte2.text.toUpperCase()}';

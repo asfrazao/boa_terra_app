@@ -5,6 +5,7 @@ import '../welcome_screen.dart';
 import '../../widgets/cultos.dart';
 import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
 import '../dashboard/subscreens/pedido_oracao_screen.dart';
+import 'subscreens/eventos_recebidos_screen.dart';
 
 class DashboardMembroScreen extends StatefulWidget {
   final String nome;
@@ -66,7 +67,10 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
           .get();
 
       final naoLidos = snapshot.docs.where((doc) {
-        final lidasPor = List<String>.from(doc['lidasPor'] ?? []);
+        final lidasPor = doc.data().containsKey('lidasPor')
+            ? List<String>.from(doc['lidasPor'])
+            : <String>[];
+
         return !lidasPor.contains(widget.userId);
       }).length;
 
@@ -85,11 +89,15 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
       final snapshot = await FirebaseFirestore.instance
           .collection('eventos')
           .where('igrejaId', isEqualTo: widget.igrejaId)
+          .where('visivelPara', arrayContainsAny: ['membro', 'todos'])
+          .where('dataExpiracao', isGreaterThan: Timestamp.now())
           .get();
 
       final naoLidos = snapshot.docs.where((doc) {
-        final lidos = List<String>.from(doc['lidos'] ?? []);
-        return !lidos.contains(widget.userId);
+        final lidasPor = doc.data().containsKey('lidasPor')
+            ? List<String>.from(doc['lidasPor'])
+            : <String>[];
+        return !lidasPor.contains(widget.userId);
       }).length;
 
       if (!mounted) return;
@@ -100,6 +108,8 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
       debugPrint("Erro ao contar eventos: $e");
     }
   }
+
+
 
   Widget _buildBotaoDash(String titulo, IconData icone, VoidCallback onTap, {int badge = 0}) {
     return Card(
@@ -113,7 +123,7 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Colors.red,
+                    color: Colors.orange,
                     shape: BoxShape.circle,
                   ),
                   child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 10)),
@@ -243,11 +253,19 @@ class _DashboardMembroScreenState extends State<DashboardMembroScreen> {
               }),
 
 
-              _buildBotaoDash('Eventos', Icons.event, () {
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => EventosScreen(userId: widget.userId),
-                ));
+              _buildBotaoDash('Eventos', Icons.event, () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EventosRecebidosScreen(
+                      userId: widget.userId,
+                      igrejaId: widget.igrejaId,
+                    ),
+                  ),
+                );
+                _contarEventosNaoLidos(); // atualiza contador ao voltar
               }, badge: eventosNaoLidos),
+
 
               const SizedBox(height: 24),
               Row(

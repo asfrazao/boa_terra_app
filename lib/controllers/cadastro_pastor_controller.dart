@@ -24,7 +24,7 @@ class CadastroPastorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Batismo (mesmo que em membros, valor fixo por enquanto)
+  // Batismo
   String? batismoSelecionado = 'Não informado';
 
   // Papéis exclusivos
@@ -38,7 +38,14 @@ class CadastroPastorController extends ChangeNotifier {
     'Auxiliar': isAuxiliar,
   };
 
-  /// Torna os papéis mutuamente exclusivos
+  /// Getters com `.trim()` para dados consistentes
+  String get nomeSanitizado => nomeController.text.trim();
+  String get sobrenomeSanitizado => sobrenomeController.text.trim();
+  String get rgSanitizado => rgController.text.trim();
+  String get emailSanitizado => emailController.text.trim();
+  String get senhaSanitizada => senhaController.text.trim();
+
+  /// Exclusividade das funções
   void alternarFuncao(String funcao, bool valor) {
     if (!valor) {
       isOficial = false;
@@ -54,13 +61,13 @@ class CadastroPastorController extends ChangeNotifier {
 
   Map<String, dynamic> toFirestoreData() {
     return {
-      'nome': nomeController.text,
-      'nome_lower': nomeController.text.toLowerCase(),
-      'sobrenome': sobrenomeController.text,
-      'sobrenome_lower': sobrenomeController.text.toLowerCase(),
-      'rg': rgController.text,
-      'email': emailController.text,
-      'senha': senhaController.text,
+      'nome': nomeSanitizado,
+      'nome_lower': nomeSanitizado.toLowerCase(),
+      'sobrenome': sobrenomeSanitizado,
+      'sobrenome_lower': sobrenomeSanitizado.toLowerCase(),
+      'rg': rgSanitizado,
+      'email': emailSanitizado,
+      'senha': senhaSanitizada,
       'imagem': _imagemBase64Final ?? '',
       'convite': convite,
       'igrejaId': igrejaId,

@@ -8,9 +8,9 @@ import '../../widgets/cultos.dart';
 import '../../models/igreja_model.dart';
 import '../../utils/compartilhador_convite.dart';
 import '../../screens/dashboard/subscreens/admin_usuario_screen.dart';
-import '../dashboard/subscreens/enviar_mensagem_screen.dart';
-import '../dashboard/subscreens/mensagens_recebidas_screen.dart';
 import '../dashboard/subscreens/visualizar_pedidos_oracao_screen.dart';
+import 'subscreens/gerenciar_eventos_screen.dart';
+import '../dashboard/subscreens/recados_screen.dart';
 
 class DashboardPastorScreen extends StatefulWidget {
   final String nome;
@@ -286,9 +286,9 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(),
-        const Text("Igrejas vinculadas ao seu convite:", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+  /*      const Divider(),*/
+/*        const Text("Igrejas vinculadas ao seu convite:", style: TextStyle(fontWeight: FontWeight.bold)),*/
+        const SizedBox(height: 3),
         ...igrejasDoConvite.map((igreja) {
           return ListTile(
             title: Text(igreja.denominacao),
@@ -327,7 +327,8 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
             ),
           );
         }).toList(),
-        const Divider(),
+        const SizedBox(height: 10),
+/*        const Divider(),*/
       ],
     );
   }
@@ -336,7 +337,7 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Dashboard do Pastor"),
+        title: const Text("Administração do Pastor"),
         backgroundColor: Colors.purple.shade100,
         foregroundColor: Colors.black,
       ),
@@ -352,11 +353,13 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                   backgroundImage: MemoryImage(base64Decode(dadosUsuario!['fotoBase64'])),
                 ),
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 5),
             Text("Olá Pastor ${widget.nome}, bem-vindo ao BOA TERRA.", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(nomeIgrejaAtual ?? 'Carregando...', style: const TextStyle(fontSize: 16, color: Colors.grey)),
-            const SizedBox(height: 24),
+            /*Text(nomeIgrejaAtual ?? 'Carregando...', style: const TextStyle(fontSize: 16, color: Colors.grey)),*/
+            const SizedBox(height: 10),
+
+            _listaIgrejasAdmin(),
 
             _botaoDash("Cultos", Icons.schedule, () {
               Navigator.push(
@@ -367,33 +370,36 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
               );
             }),
 
-            _botaoDash("Enviar Recados", Icons.message, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EnviarMensagemScreen(
-                    userId: widget.userId,
-                    igrejaId: widget.igrejaId,
-                  ),
-                ),
-              );
-            }),
-
-            _botaoDash('Ler Recados de Outros Pastores', Icons.mail, () async {
+            _botaoDash("Recados", Icons.mail, () async {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => MensagensRecebidasScreen(
+                  builder: (_) => RecadosScreen(
                     userId: widget.userId,
                     igrejaId: widget.igrejaId,
-                    tipoUsuario: 'pastor',
                   ),
                 ),
               );
-              _contarRecadosNaoLidos();
+              _contarRecadosNaoLidos(); // manter contador funcionando
             }, badge: recadosNaoLidos),
 
-            _botaoDash("Gerenciar Eventos", Icons.event_available, () {}),
+
+            _botaoDash(
+              "Gerenciar Eventos",
+              Icons.event_available,
+                  () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GerenciarEventosScreen(
+                      igrejaId: widget.igrejaId,
+                      userId: widget.userId,
+                    ),
+                  ),
+                );
+              },
+            ),
+
 
             _botaoDash("Visualizar Pedidos de Oração", Icons.favorite, () async {
               await Navigator.push(
@@ -423,7 +429,6 @@ class _DashboardPastorScreenState extends State<DashboardPastorScreen> {
                 );
               }),
 
-            _listaIgrejasAdmin(),
 
             const SizedBox(height: 24),
 

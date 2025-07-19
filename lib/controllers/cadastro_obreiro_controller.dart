@@ -14,18 +14,25 @@ class CadastroObreiroController extends UsuarioCadastroController {
   String? cargoSelecionado;
   String? idIgreja;
 
-  /// ✅ Validações
-  bool get senhaValida => senhaController.text.trim().length >= 6;
-  bool get repetidaCorretamente =>
-      senhaController.text.trim() == repetirSenhaController.text.trim();
+  // ✅ Getters sanitizados (sem espaços extras)
+  String get nomeSanitizado => nomeController.text.trim();
+  String get sobrenomeSanitizado => sobrenomeController.text.trim();
+  String get rgSanitizado => rgController.text.trim();
+  String get emailSanitizado => emailController.text.trim();
+  String get senhaSanitizada => senhaController.text.trim();
+  String get repetirSenhaSanitizada => repetirSenhaController.text.trim();
+
+  // 🔒 Validações
+  bool get senhaValida => senhaSanitizada.length >= 6;
+  bool get repetidaCorretamente => senhaSanitizada == repetirSenhaSanitizada;
 
   bool validarCamposObrigatorios() {
     final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,4}$');
 
-    return nomeController.text.trim().isNotEmpty &&
-        sobrenomeController.text.trim().isNotEmpty &&
-        rgController.text.trim().isNotEmpty &&
-        emailRegex.hasMatch(emailController.text.trim()) &&
+    return nomeSanitizado.isNotEmpty &&
+        sobrenomeSanitizado.isNotEmpty &&
+        rgSanitizado.isNotEmpty &&
+        emailRegex.hasMatch(emailSanitizado) &&
         (cargoSelecionado != null && cargoSelecionado!.isNotEmpty) &&
         (imagemBase64 != null && imagemBase64!.isNotEmpty) &&
         (igrejaSelecionada != null && igrejaSelecionada!.isNotEmpty) &&
@@ -44,12 +51,12 @@ class CadastroObreiroController extends UsuarioCadastroController {
     final Map<String, dynamic> dados = {
       'tipo': tipo,
       'imagem': imagemBase64Final,
-      'nome': nomeController.text.trim(),
-      'sobrenome': sobrenomeController.text.trim(),
-      'nome_lower': nomeController.text.trim().toLowerCase(),
-      'sobrenome_lower': sobrenomeController.text.trim().toLowerCase(),
-      'rg': rgController.text.trim(),
-      'email': emailController.text.trim(),
+      'nome': nomeSanitizado,
+      'sobrenome': sobrenomeSanitizado,
+      'nome_lower': nomeSanitizado.toLowerCase(),
+      'sobrenome_lower': sobrenomeSanitizado.toLowerCase(),
+      'rg': rgSanitizado,
+      'email': emailSanitizado,
       'cargo': cargoSelecionado,
       'igrejaId': idIgreja,
       'igrejaNome': nomeIgreja,
@@ -58,10 +65,10 @@ class CadastroObreiroController extends UsuarioCadastroController {
     };
 
     if (!isEditando) {
-      dados['senha'] = senhaController.text.trim();
+      dados['senha'] = senhaSanitizada;
       dados['dataCadastro'] = FieldValue.serverTimestamp();
     } else {
-      if (senhaValida) dados['senha'] = senhaController.text.trim();
+      if (senhaValida) dados['senha'] = senhaSanitizada;
       dados['dataAtualizacao'] = FieldValue.serverTimestamp();
     }
 

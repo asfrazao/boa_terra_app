@@ -26,6 +26,14 @@ class CadastroMembroController extends ChangeNotifier {
     'Grupo das crianças': ['Lider', 'Regência', 'Louvor', 'Nenhum'],
   };
 
+  /// Getters seguros com trim para uso em persistência
+  String get nomeSanitizado => nomeController.text.trim();
+  String get sobrenomeSanitizado => sobrenomeController.text.trim();
+  String get rgSanitizado => rgController.text.trim();
+  String get emailSanitizado => emailController.text.trim();
+  String get senhaSanitizada => senhaController.text.trim();
+  String get repetirSenhaSanitizada => repetirSenhaController.text.trim();
+
   /// Método chamado ao selecionar grupo
   void selecionarGrupo(String grupo) {
     grupoSelecionado = grupo;
@@ -33,8 +41,7 @@ class CadastroMembroController extends ChangeNotifier {
     notifyListeners();
   }
 
-
-  /// Método sem lógica (usado em casos anteriores)
+  /// Alterna funções marcadas no grupo
   void alternarFuncao(String funcao, bool selecionado) {
     if (funcao == 'Nenhum') {
       if (selecionado) {
@@ -56,9 +63,6 @@ class CadastroMembroController extends ChangeNotifier {
 
     notifyListeners();
   }
-
-
-
 
   /// Carrega dados ao editar um membro já existente
   void carregarDadosExistentes(Map<String, dynamic> dados) {
