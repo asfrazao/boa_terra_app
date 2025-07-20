@@ -3,7 +3,7 @@ platform :ios, '13.0'
 use_frameworks!
 use_modular_headers!
 
-load File.join(File.dirname(__FILE__), 'Flutter', 'podhelper.rb')
+load File.join(File.dirname(__FILE__), 'podhelper.rb')
 
 target 'Runner' do
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
