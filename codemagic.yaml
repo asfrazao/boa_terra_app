@@ -1,0 +1,32 @@
+workflows:
+  build-ios:
+    name: Build iOS IPA for Boa Terra App
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      xcode: latest
+    triggers:
+      - push_branch: main
+    integrations:
+      app_store_connect: app_store_api        # Nome do App Store Connect API Key
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: CocoaPods install
+        script: |
+          cd ios
+          pod install
+      - name: Build iOS IPA
+        script: flutter build ios --release
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - boaterra.app@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:                       # Publishing automático
+        distribute: true
