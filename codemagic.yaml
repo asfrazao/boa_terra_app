@@ -7,6 +7,8 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      vars:
+        APPLE_TEAM_ID: SEU_TEAM_ID_AQUI
 
     scripts:
       - name: Flutter pub get
@@ -17,7 +19,7 @@ workflows:
           cd ios
           pod install
 
-      - name: Gerar Runner.xcarchive sem assinatura
+      - name: Gerar Runner.xcarchive com Team ID
         script: |
           mkdir -p build/ios/archive
           xcodebuild archive \
@@ -25,16 +27,18 @@ workflows:
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID
 
-      - name: Exportar IPA manualmente sem assinatura
+      - name: Exportar IPA com Team ID
         script: |
           mkdir -p build/ios/ipa
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportOptionsPlist ios/ExportOptions.plist \
             -exportPath build/ios/ipa \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID
 
     artifacts:
       - build/ios/ipa/*.ipa
