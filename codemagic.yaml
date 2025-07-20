@@ -6,10 +6,6 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-    triggers:
-      - push_branch: main
-    integrations:
-      app_store_connect: app_store_api        # Nome do App Store Connect API Key
     scripts:
       - name: Flutter pub get
         script: flutter pub get
@@ -17,7 +13,7 @@ workflows:
         script: |
           cd ios
           pod install
-      - name: Build iOS IPA
+      - name: Build IPA
         script: flutter build ios --release
     artifacts:
       - build/ios/ipa/*.ipa
@@ -28,5 +24,3 @@ workflows:
         notify:
           success: true
           failure: true
-      app_store_connect:                       # Publishing automático
-        distribute: true
