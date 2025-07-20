@@ -1,4 +1,4 @@
-# Podfile gerado manualmente para o Boa Terra App
+# Podfile atualizado para o Codemagic + Flutter
 platform :ios, '13.0'
 
 use_frameworks!
