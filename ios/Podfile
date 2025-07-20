@@ -3,11 +3,8 @@ platform :ios, '13.0'
 use_frameworks!
 use_modular_headers!
 
-# 👇 Esta linha é essencial para que o método seja reconhecido
-load File.join(File.dirname(__FILE__), 'Flutter', 'podhelper.rb')
-
 target 'Runner' do
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  flutter_install_ios_plugin_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
