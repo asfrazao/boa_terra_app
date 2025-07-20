@@ -3,15 +3,15 @@ platform :ios, '13.0'
 use_frameworks!
 use_modular_headers!
 
+# 👇 Esta linha é essencial para que o método seja reconhecido
+load File.join(File.dirname(__FILE__), 'Flutter', 'podhelper.rb')
+
 target 'Runner' do
-  install_all_flutter_pods File.dirname(File.realpath(__FILE__))
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-    end
     flutter_additional_ios_build_settings(target)
   end
 end
