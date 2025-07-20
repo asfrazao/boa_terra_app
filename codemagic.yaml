@@ -19,7 +19,7 @@ workflows:
           cd ios
           pod install
 
-      - name: Gerar Runner.xcarchive com Team ID
+      - name: Gerar Runner.xcarchive com Team ID explícito
         script: |
           mkdir -p build/ios/archive
           xcodebuild archive \
@@ -27,17 +27,23 @@ workflows:
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
+            -skipPackagePluginValidation \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM=$APPLE_TEAM_ID
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            OTHER_CODE_SIGN_FLAGS="--keychain codemagic-temp-keychain"
 
-      - name: Exportar IPA com Team ID
+      - name: Exportar IPA com Team ID explícito
         script: |
           mkdir -p build/ios/ipa
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportOptionsPlist ios/ExportOptions.plist \
             -exportPath build/ios/ipa \
-            CODE_SIGNING_ALLOWED=NO \
+            -allowProvisioningUpdates \
             DEVELOPMENT_TEAM=$APPLE_TEAM_ID
 
     artifacts:
