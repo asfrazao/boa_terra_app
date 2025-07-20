@@ -6,6 +6,7 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+
     scripts:
       - name: Flutter pub get
         script: flutter pub get
@@ -23,7 +24,11 @@ workflows:
             -scheme Runner \
             -configuration Release \
             -archivePath build/ios/archive/Runner.xcarchive \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
 
       - name: Exportar IPA sem assinatura
         script: |
@@ -31,7 +36,12 @@ workflows:
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
             -exportOptionsPlist ios/ExportOptions.plist \
-            -exportPath build/ios/ipa
+            -exportPath build/ios/ipa \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
 
     artifacts:
       - build/ios/ipa/*.ipa
