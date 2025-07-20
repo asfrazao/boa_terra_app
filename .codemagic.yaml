@@ -1,0 +1,26 @@
+workflows:
+  build-ios:
+    name: Build iOS IPA for Boa Terra App
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Instalar dependências do Flutter
+        script: |
+          flutter pub get
+      - name: Instalar CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Build IPA
+        script: |
+          flutter build ios --release
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - boaterra.app@gmail.com
+        notify:
+          success: true
+          failure: true
